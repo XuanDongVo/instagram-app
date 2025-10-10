@@ -1,98 +1,260 @@
+import * as React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, SafeAreaView, StyleSheet, View, Platform, Text, Pressable } from 'react-native';
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Ionicons, Feather } from '@expo/vector-icons';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type PostImage = { id: string; urlImage?: string; localSource?: any };
+type UserSummary = { id: string; userName: string; fullName: string; profileImage?: string };
+type Post = {
+  id: string;
+  content: string;
+  createAt: string;
+  images: PostImage[];
+  comments: number;
+  likes: number;
+  liked: boolean;
+  savedPost: boolean;
+  user: UserSummary;
+};
+
+const API_BASE = ((process.env as any).EXPO_PUBLIC_API_BASE as string) || (Platform.OS === 'android' ? 'http://10.0.2.2:8081' : 'http://localhost:8081');
+const CURRENT_USER_ID = ((process.env as any).EXPO_PUBLIC_USER_ID as string) || '';
+
+function HeaderBar() {
+  return (
+    <View style={styles.headerBar}>
+      <Text style={styles.brandText}>Instagram</Text>
+      <View style={{ flexDirection: 'row', gap: 18, alignItems: 'center' }}>
+        <Feather name="heart" size={24} />
+        <Feather name="message-circle" size={24} />
+      </View>
+    </View>
+  );
+}
+
+function StoryBar() {
+  const avatars = new Array(8).fill(0);
+  return (
+    <FlatList
+      data={avatars}
+      keyExtractor={(_, i) => `story-${i}`}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.storyRow}
+      renderItem={({ index }) => (
+        <View style={styles.storyItem}>
+          <View style={styles.storyRing}>
+            <Image
+              source={require('@/assets/images/icon.png')}
+              style={styles.storyAvatar}
+              contentFit="cover"
+            />
+          </View>
+          <Text numberOfLines={1} style={styles.storyLabel}>
+            {index === 0 ? 'Your story' : `user_${index}`}
+          </Text>
+        </View>
+      )}
+    />
+  );
+}
+
+function PostCard({ post }: { post: Post }) {
+  const [liked, setLiked] = useState(post.liked);
+  const [saved, setSaved] = useState(post.savedPost);
+  const [likeCount, setLikeCount] = useState(post.likes);
+
+  const toggleLike = useCallback(() => {
+    setLiked((v) => {
+      const next = !v;
+      setLikeCount((c) => (next ? c + 1 : Math.max(0, c - 1)));
+      return next;
+    });
+  }, []);
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Image source={{ uri: post.user.profileImage || undefined }} style={styles.cardAvatar} />
+        <Text numberOfLines={1} style={styles.cardUser}>{post.user.userName || 'user'}</Text>
+        <View style={{ flex: 1 }} />
+        <Feather name="more-horizontal" size={20} />
+      </View>
+      {post.images?.[0] ? (
+        <Image
+          source={post.images[0].localSource ?? { uri: post.images[0].urlImage as string }}
+          style={styles.cardImage}
+          contentFit="cover"
+        />
+      ) : null}
+      <View style={styles.cardActions}>
+        <View style={{ flexDirection: 'row', gap: 16 }}>
+          <Pressable onPress={toggleLike} hitSlop={10}>
+            <Feather name="heart" color={liked ? '#ef4444' : undefined} size={26} />
+          </Pressable>
+          <Pressable hitSlop={10}>
+            <Feather name="message-circle" size={26} />
+          </Pressable>
+          <Pressable hitSlop={10}>
+            <Feather name="send" size={26} />
+          </Pressable>
+        </View>
+        <Pressable onPress={() => setSaved((s) => !s)} hitSlop={10}>
+          <Feather name="bookmark" size={26} />
+        </Pressable>
+      </View>
+      <View style={styles.cardMeta}>
+        <Text style={styles.likeText}>Liked by <Text style={{ fontWeight: '700' }}>thekamraan</Text> and {likeCount.toLocaleString()} others</Text>
+        {post.content ? (
+          <Text style={styles.captionText} numberOfLines={2}>
+            <Text style={styles.cardUser}>{post.user.userName} </Text>
+            {post.content}
+            <Text style={{ color: '#737373' }}> more</Text>
+          </Text>
+        ) : null}
+        <Text style={styles.viewComments}>View all {post.comments} comments</Text>
+        <Text style={styles.timestamp}>2 hours ago</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const scheme = useColorScheme() ?? 'light';
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh startss</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const buildMockPosts = (): Post[] => [
+    {
+      id: 'mock-1',
+      content: "Start your countdown to the glorious arrival of Marvel Studios' #Loki",
+      createAt: new Date().toISOString(),
+      images: [{ id: 'img-1', localSource: require('@/assets/images/react-logo.png') }],
+      comments: 103,
+      likes: 905235,
+      liked: false,
+      savedPost: false,
+      user: { id: 'u1', userName: 'marvel', fullName: 'Marvel', profileImage: undefined },
+    },
+    {
+      id: 'mock-2',
+      content: 'Exploring the new React Native features in Expo 54!',
+      createAt: new Date().toISOString(),
+      images: [{ id: 'img-2', localSource: require('@/assets/images/partial-react-logo.png') }],
+      comments: 12,
+      likes: 1402,
+      liked: true,
+      savedPost: false,
+      user: { id: 'u2', userName: 'react', fullName: 'React', profileImage: undefined },
+    },
+    {
+      id: 'mock-3',
+      content: 'Sunset over the city. Shot on phone.',
+      createAt: new Date().toISOString(),
+      images: [{ id: 'img-3', localSource: require('@/assets/images/splash-icon.png') }],
+      comments: 89,
+      likes: 7689,
+      liked: false,
+      savedPost: true,
+      user: { id: 'u3', userName: 'cityscape', fullName: 'City Scape', profileImage: undefined },
+    },
+    {
+      id: 'mock-4',
+      content: 'Designing a clean UI with Expo Router.',
+      createAt: new Date().toISOString(),
+      images: [{ id: 'img-4', localSource: require('@/assets/images/android-icon-foreground.png') }],
+      comments: 32,
+      likes: 2201,
+      liked: false,
+      savedPost: false,
+      user: { id: 'u4', userName: 'uiux', fullName: 'UI/UX', profileImage: undefined },
+    },
+  ];
+
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/api/v1/post?id=${encodeURIComponent(CURRENT_USER_ID)}`);
+      const json = await res.json();
+      const data = json?.data ?? [];
+      setPosts(data.length > 0 ? data : buildMockPosts());
+    } catch (e) {
+      console.error('Load posts error', e);
+      setPosts(buildMockPosts());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchPosts();
+    setRefreshing(false);
+  }, [fetchPosts]);
+
+  const listHeader = useMemo(() => (
+    <View>
+      <HeaderBar />
+      <StoryBar />
+      <View style={{ height: 8 }} />
+    </View>
+  ), []);
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors[scheme].background }]}>
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator />
+        </View>
+      ) : (
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={listHeader}
+          renderItem={({ item }) => <PostCard post={item} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={{ height: 0.5, backgroundColor: '#e5e5e5' }} />}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerBar: {
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  brandText: { fontSize: 28, fontWeight: '600' },
+  iconBtn: { width: 22, height: 22 },
+  storyRow: { paddingVertical: 8, paddingHorizontal: 8, gap: 12 },
+  storyItem: { alignItems: 'center', marginHorizontal: 6, width: 70 },
+  storyRing: { padding: 3, borderRadius: 40, borderWidth: 2, borderColor: '#f77737' },
+  storyAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#ddd' },
+  storyLabel: { fontSize: 12, marginTop: 6, textAlign: 'center' },
+  card: { marginBottom: 16 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 10 },
+  cardAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#ddd' },
+  cardUser: { fontSize: 14, fontWeight: '600' },
+  cardImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
+  cardActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, height: 44 },
+  cardMeta: { paddingHorizontal: 12, paddingVertical: 4, gap: 6 },
+  likeText: { fontWeight: '600' },
+  captionText: { fontSize: 14 },
+  viewComments: { color: '#737373' },
+  timestamp: { color: '#737373', fontSize: 12 },
 });
