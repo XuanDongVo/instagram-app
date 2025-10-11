@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, SafeAreaView, StyleSheet, View, Platform, Text, Pressable } from 'react-native';
-import { Image } from 'expo-image';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type PostImage = { id: string; urlImage?: string; localSource?: any };
 type UserSummary = { id: string; userName: string; fullName: string; profileImage?: string };
@@ -24,12 +24,16 @@ const API_BASE = ((process.env as any).EXPO_PUBLIC_API_BASE as string) || (Platf
 const CURRENT_USER_ID = ((process.env as any).EXPO_PUBLIC_USER_ID as string) || '';
 
 function HeaderBar() {
+  const router = useRouter();
+
   return (
     <View style={styles.headerBar}>
       <Text style={styles.brandText}>Instagram</Text>
       <View style={{ flexDirection: 'row', gap: 18, alignItems: 'center' }}>
         <Feather name="heart" size={24} />
-        <Feather name="message-circle" size={24} />
+        <TouchableOpacity onPress={() => router.push('/messages')}>
+          <Feather name="message-circle" size={24} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -177,11 +181,13 @@ export default function HomeScreen() {
 
   const fetchPosts = useCallback(async () => {
     try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE}/api/v1/post?id=${encodeURIComponent(CURRENT_USER_ID)}`);
-      const json = await res.json();
-      const data = json?.data ?? [];
-      setPosts(data.length > 0 ? data : buildMockPosts());
+      // setLoading(true);
+      // const res = await fetch(`${API_BASE}/api/v1/post?id=${encodeURIComponent(CURRENT_USER_ID)}`);
+      // const json = await res.json();
+      // const data = json?.data ?? [];
+      // setPosts(data.length > 0 ? data : buildMockPosts());
+
+      setPosts(buildMockPosts());
     } catch (e) {
       console.error('Load posts error', e);
       setPosts(buildMockPosts());
