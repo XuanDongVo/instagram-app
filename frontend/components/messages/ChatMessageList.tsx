@@ -1,18 +1,14 @@
+import { ChatMessageListProps, MessageData } from '@/types';
 import { useEffect, useRef } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
-import ChatMessage, { MessageData } from './ChatMessage';
+import ChatMessage from './ChatMessage';
 
-interface ChatMessageListProps {
-    messages: MessageData[];
-    onRefresh?: () => void;
-    refreshing?: boolean;
-}
-
-export default function ChatMessageList({
+const ChatMessageList = ({
     messages,
     onRefresh,
-    refreshing = false
-}: ChatMessageListProps) {
+    refreshing = false,
+    onMessageLongPress
+}: ChatMessageListProps) => {
     const flatListRef = useRef<FlatList>(null);
 
     useEffect(() => {
@@ -24,7 +20,7 @@ export default function ChatMessageList({
     }, [messages.length]);
 
     const renderMessage = ({ item }: { item: MessageData }) => (
-        <ChatMessage message={item} />
+        <ChatMessage message={item} onLongPress={onMessageLongPress} />
     );
 
     return (
@@ -56,3 +52,5 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
 });
+
+export default ChatMessageList;

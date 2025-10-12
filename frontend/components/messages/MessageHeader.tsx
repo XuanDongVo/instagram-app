@@ -1,18 +1,13 @@
+import { MessageHeaderProps } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-interface MessageHeaderProps {
-    username: string;
-    onVideoCall?: () => void;
-    onNewMessage?: () => void;
-}
-
-export default function MessageHeader({
+const MessageHeader = ({
     username,
     onVideoCall,
     onNewMessage
-}: MessageHeaderProps) {
+}: MessageHeaderProps) => {
     const router = useRouter();
 
     const handleBack = () => {
@@ -79,3 +74,5 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
 });
+
+export default MessageHeader;

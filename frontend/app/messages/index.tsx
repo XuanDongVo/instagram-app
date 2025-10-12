@@ -1,4 +1,6 @@
-import { MessageHeader, MessageList, SearchBar } from '@/components/messages';
+import MessageHeader from '@/components/messages/MessageHeader';
+import MessageList from '@/components/messages/MessageList';
+import SearchBar from '@/components/messages/SearchBar';
 import { useCallback, useState } from 'react';
 import { SafeAreaView, StyleSheet } from 'react-native';
 
@@ -76,19 +78,16 @@ export default function MessagesIndex() {
 
     const handleRefresh = useCallback(() => {
         setRefreshing(true);
-        // Simulate API call
         setTimeout(() => {
             setRefreshing(false);
         }, 1000);
     }, []);
 
     const handleVideoCall = useCallback(() => {
-        // Handle video call functionality
         console.log('Video call pressed');
     }, []);
 
     const handleNewMessage = useCallback(() => {
-        // Handle new message functionality
         console.log('New message pressed');
     }, []);
 

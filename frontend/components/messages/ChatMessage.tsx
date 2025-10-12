@@ -1,22 +1,36 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { ChatMessageProps } from '@/types';
+import React from 'react';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export interface MessageData {
-    id: string;
-    text: string;
-    timestamp: string;
-    isMe: boolean;
-    avatar?: string;
-    type?: 'text' | 'image';
-    imageUrl?: string;
-    status?: 'sent' | 'delivered' | 'read';
-}
+const ChatMessage = ({ message, onLongPress }: ChatMessageProps) => {
+    const { text, timestamp, isMe, avatar, type = 'text', imageUrl, status, isEdited } = message;
 
-interface ChatMessageProps {
-    message: MessageData;
-}
+    const handleLongPress = () => {
+        if (isMe && onLongPress) {
+            onLongPress(message);
+        }
+    };
 
-export default function ChatMessage({ message }: ChatMessageProps) {
-    const { text, timestamp, isMe, avatar, type = 'text', imageUrl, status } = message;
+    const MessageBubble = ({ children }: { children: React.ReactNode }) => {
+        if (isMe) {
+            return (
+                <TouchableOpacity
+                    style={[styles.bubble, styles.myBubble]}
+                    onLongPress={handleLongPress}
+                    delayLongPress={500}
+                    activeOpacity={0.8}
+                >
+                    {children}
+                </TouchableOpacity>
+            );
+        } else {
+            return (
+                <View style={[styles.bubble, styles.theirBubble]}>
+                    {children}
+                </View>
+            );
+        }
+    };
 
     return (
         <View style={[styles.container, isMe ? styles.myMessage : styles.theirMessage]}>
@@ -27,7 +41,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                 />
             )}
 
-            <View style={[styles.bubble, isMe ? styles.myBubble : styles.theirBubble]}>
+            <MessageBubble>
                 {type === 'image' && imageUrl && (
                     <Image source={{ uri: imageUrl }} style={styles.messageImage} />
                 )}
@@ -35,6 +49,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                 {text && (
                     <Text style={[styles.messageText, isMe ? styles.myText : styles.theirText]}>
                         {text}
+                        {isEdited && <Text style={styles.editedText}> (đã chỉnh sửa)</Text>}
                     </Text>
                 )}
 
@@ -49,7 +64,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                         </Text>
                     )}
                 </View>
-            </View>
+            </MessageBubble>
 
             {isMe && (
                 <View style={styles.avatarPlaceholder} />
@@ -130,4 +145,11 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: 'rgba(255, 255, 255, 0.7)',
     },
+    editedText: {
+        fontSize: 12,
+        fontStyle: 'italic',
+        opacity: 0.7,
+    },
 });
+
+export default ChatMessage;

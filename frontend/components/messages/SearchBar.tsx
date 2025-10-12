@@ -1,16 +1,12 @@
+import { SearchBarProps } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
-interface SearchBarProps {
-    placeholder?: string;
-    onSearchChange?: (text: string) => void;
-}
-
-export default function SearchBar({
+const SearchBar = ({
     placeholder = "Search",
     onSearchChange
-}: SearchBarProps) {
+}: SearchBarProps) => {
     const [searchText, setSearchText] = useState('');
 
     const handleTextChange = (text: string) => {
@@ -59,3 +55,5 @@ const styles = StyleSheet.create({
         color: '#000',
     },
 });
+
+export default SearchBar;

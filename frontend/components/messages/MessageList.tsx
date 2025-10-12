@@ -1,28 +1,13 @@
+import { MessageItemProps, MessageListProps } from '@/types';
 import { FlatList, StyleSheet } from 'react-native';
 import MessageItem from './MessageItem';
 
-interface Message {
-    id: string;
-    name: string;
-    lastMessage: string;
-    avatar: string;
-    timestamp: string;
-    isOnline?: boolean;
-    hasCamera?: boolean;
-}
-
-interface MessageListProps {
-    messages: Message[];
-    onRefresh?: () => void;
-    refreshing?: boolean;
-}
-
-export default function MessageList({
+const MessageList = ({
     messages,
     onRefresh,
     refreshing = false
-}: MessageListProps) {
-    const renderItem = ({ item }: { item: Message }) => (
+}: MessageListProps) => {
+    const renderItem = ({ item }: { item: MessageItemProps }) => (
         <MessageItem
             id={item.id}
             name={item.name}
@@ -54,3 +39,5 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
 });
+
+export default MessageList;

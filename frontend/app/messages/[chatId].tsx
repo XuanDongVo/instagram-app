@@ -1,8 +1,11 @@
-import { ChatHeader, ChatInput, ChatMessageList } from '@/components/messages';
-import { MessageData } from '@/components/messages/ChatMessage';
+import ChatHeader from '@/components/messages/ChatHeader';
+import ChatInput from '@/components/messages/ChatInput';
+import ChatMessageList from '@/components/messages/ChatMessageList';
+import MessageActionModal from '@/components/messages/MessageActionModal';
+import { MessageData } from '@/types';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MOCK_USERS = {
@@ -95,6 +98,8 @@ export default function ChatDetail() {
     const { chatId } = useLocalSearchParams();
     const [messages, setMessages] = useState<MessageData[]>(MOCK_MESSAGES);
     const [refreshing, setRefreshing] = useState(false);
+    const [selectedMessage, setSelectedMessage] = useState<MessageData | null>(null);
+    const [showActionModal, setShowActionModal] = useState(false);
 
     const currentUser = MOCK_USERS[chatId as keyof typeof MOCK_USERS] || {
         name: 'Unknown User',
@@ -137,6 +142,13 @@ export default function ChatDetail() {
         }, 1000);
     }, []);
 
+    const handleVideoCall = useCallback(() => {
+        console.log('Starting video call with', currentUser.name);
+    }, [currentUser.name]);
+
+    const handleVoiceCall = useCallback(() => {
+        console.log('Starting voice call with', currentUser.name);
+    }, [currentUser.name]);
 
     const handleInfo = useCallback(() => {
         console.log('Opening user info for', currentUser.name);
@@ -150,12 +162,88 @@ export default function ChatDetail() {
         console.log('Open camera');
     }, []);
 
+    const handleMessageLongPress = useCallback((message: MessageData) => {
+        setSelectedMessage(message);
+        setShowActionModal(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setShowActionModal(false);
+        setSelectedMessage(null);
+    }, []);
+
+    const handleEditMessage = useCallback((message: MessageData) => {
+        Alert.alert(
+            'Chỉnh sửa tin nhắn',
+            'Nhập nội dung mới:',
+            [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                    text: 'Xác nhận',
+                    onPress: () => {
+                        setMessages(prevMessages =>
+                            prevMessages.map(msg =>
+                                msg.id === message.id
+                                    ? { ...msg, text: 'Tin nhắn đã được chỉnh sửa', isEdited: true }
+                                    : msg
+                            )
+                        );
+                    }
+                }
+            ]
+        );
+    }, []);
+
+    const handleRecallMessage = useCallback((message: MessageData) => {
+        Alert.alert(
+            'Thu hồi tin nhắn',
+            'Bạn có chắc muốn thu hồi tin nhắn này?',
+            [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                    text: 'Thu hồi',
+                    style: 'destructive',
+                    onPress: () => {
+                        setMessages(prevMessages =>
+                            prevMessages.map(msg =>
+                                msg.id === message.id
+                                    ? { ...msg, text: 'Tin nhắn đã được thu hồi', isEdited: false }
+                                    : msg
+                            )
+                        );
+                    }
+                }
+            ]
+        );
+    }, []);
+
+    const handleDeleteMessage = useCallback((message: MessageData) => {
+        Alert.alert(
+            'Xóa tin nhắn',
+            'Bạn có chắc muốn xóa tin nhắn này?',
+            [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                    text: 'Xóa',
+                    style: 'destructive',
+                    onPress: () => {
+                        setMessages(prevMessages =>
+                            prevMessages.filter(msg => msg.id !== message.id)
+                        );
+                    }
+                }
+            ]
+        );
+    }, []);
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <ChatHeader
                 userName={currentUser.name}
                 isOnline={currentUser.isOnline}
                 avatar={currentUser.avatar}
+                onVideoCall={handleVideoCall}
+                onVoiceCall={handleVoiceCall}
                 onInfo={handleInfo}
             />
 
@@ -168,6 +256,7 @@ export default function ChatDetail() {
                     messages={messages}
                     onRefresh={handleRefresh}
                     refreshing={refreshing}
+                    onMessageLongPress={handleMessageLongPress}
                 />
 
                 <ChatInput
@@ -177,6 +266,15 @@ export default function ChatDetail() {
                     placeholder="Message..."
                 />
             </KeyboardAvoidingView>
+
+            <MessageActionModal
+                visible={showActionModal}
+                message={selectedMessage}
+                onClose={handleCloseModal}
+                onEdit={handleEditMessage}
+                onRecall={handleRecallMessage}
+                onDelete={handleDeleteMessage}
+            />
         </SafeAreaView>
     );
 }

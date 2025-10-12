@@ -1,18 +1,9 @@
+import { MessageItemProps } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-interface MessageItemProps {
-    id: string;
-    name: string;
-    lastMessage: string;
-    avatar: string;
-    timestamp: string;
-    isOnline?: boolean;
-    hasCamera?: boolean;
-}
-
-export default function MessageItem({
+const MessageItem = ({
     id,
     name,
     lastMessage,
@@ -20,7 +11,7 @@ export default function MessageItem({
     timestamp,
     isOnline = false,
     hasCamera = true
-}: MessageItemProps) {
+}: MessageItemProps) => {
     const router = useRouter();
 
     const handlePress = () => {
@@ -114,3 +105,5 @@ const styles = StyleSheet.create({
         color: '#999',
     },
 });
+
+export default MessageItem;

@@ -1,20 +1,14 @@
+import { ChatInputProps } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
-interface ChatInputProps {
-    onSendMessage?: (message: string) => void;
-    onSelectImage?: () => void;
-    onSelectCamera?: () => void;
-    placeholder?: string;
-}
-
-export default function ChatInput({
+const ChatInput = ({
     onSendMessage,
     onSelectImage,
     onSelectCamera,
     placeholder = "Message..."
-}: ChatInputProps) {
+}: ChatInputProps) => {
     const [message, setMessage] = useState('');
 
     const handleSend = () => {
@@ -115,3 +109,5 @@ const styles = StyleSheet.create({
         backgroundColor: '#f0f0f0',
     },
 });
+
+export default ChatInput;

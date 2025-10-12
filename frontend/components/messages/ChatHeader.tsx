@@ -1,22 +1,16 @@
+import { ChatHeaderProps } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-interface ChatHeaderProps {
-    userName: string;
-    isOnline?: boolean;
-    avatar?: string;
-    onVideoCall?: () => void;
-    onVoiceCall?: () => void;
-    onInfo?: () => void;
-}
-
-export default function ChatHeader({
+const ChatHeader = ({
     userName,
     isOnline = false,
     avatar,
+    onVideoCall,
+    onVoiceCall,
     onInfo
-}: ChatHeaderProps) {
+}: ChatHeaderProps) => {
     const router = useRouter();
 
     const handleBack = () => {
@@ -47,11 +41,11 @@ export default function ChatHeader({
             </View>
 
             <View style={styles.rightSection}>
-                <TouchableOpacity style={styles.iconButton}>
+                <TouchableOpacity onPress={onVoiceCall} style={styles.iconButton}>
                     <Ionicons name="call-outline" size={24} color="#000" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.iconButton}>
+                <TouchableOpacity onPress={onVideoCall} style={styles.iconButton}>
                     <Ionicons name="videocam-outline" size={24} color="#000" />
                 </TouchableOpacity>
 
@@ -125,3 +119,5 @@ const styles = StyleSheet.create({
         marginLeft: 4,
     },
 });
+
+export default ChatHeader;
