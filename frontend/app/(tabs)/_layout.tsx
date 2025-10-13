@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import UserProfileScreen from '@/components/profile/UserProfileScreen';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -56,6 +57,8 @@ export default function TabLayout() {
           ),
         }}
       />
+
     </Tabs>
+
   );
 }
