@@ -4,10 +4,12 @@ import ChatMessageList from '@/components/messages/ChatMessageList';
 import MessageActionModal from '@/components/messages/MessageActionModal';
 import { MessageData } from '@/types';
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFirebaseChat } from '@/hooks/useFirebaseChat';
 
+// Mock users for demo - trong thực tế sẽ lấy từ Firebase
 const MOCK_USERS = {
     'jefferey': {
         name: 'Jefferey Williams',
@@ -31,135 +33,71 @@ const MOCK_USERS = {
     },
 };
 
-const MOCK_MESSAGES: MessageData[] = [
-    {
-        id: '1',
-        text: 'Hey! How are you doing?',
-        timestamp: '2:30 PM',
-        isMe: false,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        status: 'read',
-    },
-    {
-        id: '2',
-        text: "I'm doing great! Just finished my workout 💪",
-        timestamp: '2:32 PM',
-        isMe: true,
-        status: 'read',
-    },
-    {
-        id: '3',
-        text: 'That\'s awesome! What kind of workout did you do?',
-        timestamp: '2:33 PM',
-        isMe: false,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        status: 'read',
-    },
-    {
-        id: '4',
-        text: 'I went for a 5km run and did some strength training. Feeling energized! 🏃‍♂️',
-        timestamp: '2:35 PM',
-        isMe: true,
-        status: 'read',
-    },
-    {
-        id: '5',
-        text: 'Nice! I should probably get back to exercising too 😅',
-        timestamp: '2:36 PM',
-        isMe: false,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        status: 'read',
-    },
-    {
-        id: '6',
-        text: 'You should! Want to go to the gym together sometime?',
-        timestamp: '2:38 PM',
-        isMe: true,
-        status: 'delivered',
-    },
-    {
-        id: '7',
-        text: 'That sounds like a great idea! Let me know when you\'re free',
-        timestamp: '2:40 PM',
-        isMe: false,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        status: 'read',
-    },
-    {
-        id: '8',
-        text: 'How about this weekend? Saturday morning?',
-        timestamp: '2:42 PM',
-        isMe: true,
-        status: 'sent',
-    },
-];
-
 export default function ChatDetail() {
     const { chatId } = useLocalSearchParams();
-    const [messages, setMessages] = useState<MessageData[]>(MOCK_MESSAGES);
-    const [refreshing, setRefreshing] = useState(false);
+
+    // Firebase chat hook
+    const currentUserId = 'current_user_id'; // Thay bằng ID user thật từ auth
+    const conversationId = chatId as string;
+
+    const {
+        messages,
+        loading,
+        error,
+        sendMessage,
+        editMessage,
+        recallMessage,
+        deleteMessage,
+        markAsRead
+    } = useFirebaseChat(conversationId, currentUserId);
+
     const [selectedMessage, setSelectedMessage] = useState<MessageData | null>(null);
     const [showActionModal, setShowActionModal] = useState(false);
 
+    // Get user info for header (mock data for now)
     const currentUser = MOCK_USERS[chatId as keyof typeof MOCK_USERS] || {
         name: 'Unknown User',
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
         isOnline: false,
     };
 
-    const handleSendMessage = useCallback((messageText: string) => {
-        const newMessage: MessageData = {
-            id: Date.now().toString(),
-            text: messageText,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            isMe: true,
-            status: 'sent',
-        };
+    // Mark messages as read when component mounts
+    useEffect(() => {
+        markAsRead();
+    }, [markAsRead]);
 
-        setMessages(prevMessages => [...prevMessages, newMessage]);
-
-        setTimeout(() => {
-            setMessages(prevMessages =>
-                prevMessages.map(msg =>
-                    msg.id === newMessage.id ? { ...msg, status: 'delivered' } : msg
-                )
-            );
-        }, 1000);
-
-        setTimeout(() => {
-            setMessages(prevMessages =>
-                prevMessages.map(msg =>
-                    msg.id === newMessage.id ? { ...msg, status: 'read' } : msg
-                )
-            );
-        }, 2000);
-    }, []);
+    const handleSendMessage = useCallback(async (messageText: string) => {
+        await sendMessage(messageText);
+    }, [sendMessage]);
 
     const handleRefresh = useCallback(() => {
-        setRefreshing(true);
-        setTimeout(() => {
-            setRefreshing(false);
-        }, 1000);
+        // Firebase tự động refresh qua realtime listener
+        console.log('Refreshing messages...');
     }, []);
 
     const handleVideoCall = useCallback(() => {
         console.log('Starting video call with', currentUser.name);
+        Alert.alert('Video Call', `Calling ${currentUser.name}...`);
     }, [currentUser.name]);
 
     const handleVoiceCall = useCallback(() => {
         console.log('Starting voice call with', currentUser.name);
+        Alert.alert('Voice Call', `Calling ${currentUser.name}...`);
     }, [currentUser.name]);
 
     const handleInfo = useCallback(() => {
         console.log('Opening user info for', currentUser.name);
+        Alert.alert('User Info', `Information for ${currentUser.name}`);
     }, [currentUser.name]);
 
     const handleSelectImage = useCallback(() => {
         console.log('Select image from gallery');
+        Alert.alert('Image', 'Image upload feature coming soon!');
     }, []);
 
     const handleSelectCamera = useCallback(() => {
         console.log('Open camera');
+        Alert.alert('Camera', 'Camera feature coming soon!');
     }, []);
 
     const handleMessageLongPress = useCallback((message: MessageData) => {
@@ -172,29 +110,28 @@ export default function ChatDetail() {
         setSelectedMessage(null);
     }, []);
 
-    const handleEditMessage = useCallback((message: MessageData) => {
-        Alert.alert(
+    const handleEditMessage = useCallback(async (message: MessageData) => {
+        Alert.prompt(
             'Chỉnh sửa tin nhắn',
             'Nhập nội dung mới:',
             [
                 { text: 'Hủy', style: 'cancel' },
                 {
                     text: 'Xác nhận',
-                    onPress: () => {
-                        setMessages(prevMessages =>
-                            prevMessages.map(msg =>
-                                msg.id === message.id
-                                    ? { ...msg, text: 'Tin nhắn đã được chỉnh sửa', isEdited: true }
-                                    : msg
-                            )
-                        );
+                    onPress: async (newText: string | undefined) => {
+                        if (newText && newText.trim()) {
+                            await editMessage(message.id, newText.trim());
+                            setShowActionModal(false);
+                        }
                     }
                 }
-            ]
+            ],
+            'plain-text',
+            message.text
         );
-    }, []);
+    }, [editMessage]);
 
-    const handleRecallMessage = useCallback((message: MessageData) => {
+    const handleRecallMessage = useCallback(async (message: MessageData) => {
         Alert.alert(
             'Thu hồi tin nhắn',
             'Bạn có chắc muốn thu hồi tin nhắn này?',
@@ -203,21 +140,16 @@ export default function ChatDetail() {
                 {
                     text: 'Thu hồi',
                     style: 'destructive',
-                    onPress: () => {
-                        setMessages(prevMessages =>
-                            prevMessages.map(msg =>
-                                msg.id === message.id
-                                    ? { ...msg, text: 'Tin nhắn đã được thu hồi', isEdited: false }
-                                    : msg
-                            )
-                        );
+                    onPress: async () => {
+                        await recallMessage(message.id);
+                        setShowActionModal(false);
                     }
                 }
             ]
         );
-    }, []);
+    }, [recallMessage]);
 
-    const handleDeleteMessage = useCallback((message: MessageData) => {
+    const handleDeleteMessage = useCallback(async (message: MessageData) => {
         Alert.alert(
             'Xóa tin nhắn',
             'Bạn có chắc muốn xóa tin nhắn này?',
@@ -226,15 +158,19 @@ export default function ChatDetail() {
                 {
                     text: 'Xóa',
                     style: 'destructive',
-                    onPress: () => {
-                        setMessages(prevMessages =>
-                            prevMessages.filter(msg => msg.id !== message.id)
-                        );
+                    onPress: async () => {
+                        await deleteMessage(message.id);
+                        setShowActionModal(false);
                     }
                 }
             ]
         );
-    }, []);
+    }, [deleteMessage]);
+
+    // Show error if any
+    if (error) {
+        Alert.alert('Lỗi', error);
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -255,7 +191,7 @@ export default function ChatDetail() {
                 <ChatMessageList
                     messages={messages}
                     onRefresh={handleRefresh}
-                    refreshing={refreshing}
+                    refreshing={loading}
                     onMessageLongPress={handleMessageLongPress}
                 />
 
@@ -263,7 +199,7 @@ export default function ChatDetail() {
                     onSendMessage={handleSendMessage}
                     onSelectImage={handleSelectImage}
                     onSelectCamera={handleSelectCamera}
-                    placeholder="Message..."
+                    placeholder="Nhập tin nhắn..."
                 />
             </KeyboardAvoidingView>
 
