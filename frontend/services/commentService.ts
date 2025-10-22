@@ -2,8 +2,6 @@ import { ApiResponse, ApiService } from "./api";
 import { Comment, CommentRequest, ModifyCommentRequest } from "../types/post";
 
 export class CommentService {
-  // ==================== COMMENT METHODS ====================
-
   // Lấy danh sách bình luận
   static async getComments(postId: string): Promise<Comment[]> {
     try {
@@ -35,7 +33,8 @@ export class CommentService {
   static async deleteComment(commentId: string): Promise<void> {
     try {
       const response = await ApiService.delete<ApiResponse<any>>(
-        `/api/v1/comments/delete/${commentId}`
+        `/api/v1/comments/delete/${commentId}`,
+        { data: null }
       );
       return response.data;
     } catch (error) {

@@ -12,3 +12,9 @@ export interface ModifyCommentRequest {
   commentId: string;
   content: string;
 }
+
+// ==================== LIKE ====================
+export interface LikeRequest {
+  postId: string;
+  userId: string;
+}

@@ -107,8 +107,8 @@ export class ApiService {
     return response.data;
   }
 
-  static async delete<T>(endpoint: string): Promise<T> {
-    const response = await api.delete<T>(endpoint);
+  static async delete<T>(endpoint: string, data: unknown): Promise<T> {
+    const response = await api.delete<T>(endpoint, { data });
     return response.data;
   }
 }
