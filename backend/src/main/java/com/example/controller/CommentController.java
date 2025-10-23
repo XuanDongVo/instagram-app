@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.dto.request.ModifyCommentRequestDTO;
 
 import java.util.List;
 
@@ -69,16 +70,12 @@ public class CommentController {
         }
     }
 
-    @PutMapping("/modify/{id}")
+    @PutMapping("/modify")
     public ResponseEntity<ApiResponse<CommentResponseDTO>> modifyComment(
-            @PathVariable("id") String commentId,
-            @RequestBody String newContent) {
+          @RequestBody ModifyCommentRequestDTO requestDTO) {
         try {
 
-            if (newContent != null && newContent.startsWith("\"") && newContent.endsWith("\"")) {
-                newContent = newContent.substring(1, newContent.length() - 1);
-            }
-          CommentResponseDTO commentResponseDTO =   commentService.modifyComment(commentId, newContent);
+            CommentResponseDTO commentResponseDTO = commentService.modifyComment(requestDTO.getCommentId(), requestDTO.getContent());
             return ResponseEntity.ok(
                     ApiResponse.success(HttpStatus.OK.value(), "Cập nhật bình luận thành công.", commentResponseDTO)
             );
