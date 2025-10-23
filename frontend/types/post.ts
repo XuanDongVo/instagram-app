@@ -1,3 +1,5 @@
+import { UserResponse } from "./user";
+
 // ==================== COMMENT  ====================
 export interface Comment {}
 
@@ -17,4 +19,28 @@ export interface ModifyCommentRequest {
 export interface LikeRequest {
   postId: string;
   userId: string;
+}
+
+// ==================== SAVED POST ====================
+export interface SavedPostRequest {
+  postId: string;
+  userId: string;
+}
+
+// ==================== POST ====================
+export interface PostResponse {
+  id: string;
+  content: string;
+  createAt: string;
+  images: PostImages[];
+  comments: number;
+  likes: number;
+  liked: boolean;
+  savedPost: boolean;
+  user: UserResponse;
+}
+
+export interface PostImages {
+  id: string;
+  imageUrl: string;
 }
