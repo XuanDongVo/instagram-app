@@ -1,4 +1,3 @@
-// login.tsx
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Pressable, StyleSheet } from "react-native";
 import { router } from "expo-router";
@@ -45,7 +44,10 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       {/* Forgot Password */}
-      <TouchableOpacity style={styles.forgotContainer}>
+      <TouchableOpacity
+        style={styles.forgotContainer}
+        onPress={() => router.push("/forgot-password")}
+       >
         <Text style={styles.forgotText}>Quên mật khẩu?</Text>
       </TouchableOpacity>
 
