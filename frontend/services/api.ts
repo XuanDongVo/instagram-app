@@ -92,75 +92,31 @@ api.interceptors.response.use(
 );
 
 export class ApiService {
-  // GET request
   static async get<T>(endpoint: string, params?: unknown): Promise<T> {
-    try {
-      const response = await api.get<T>(endpoint, { params });
-      return response.data;
-    } catch (error) {
-      this.handleError(error as AxiosError);
-      throw error;
-    }
+    const response = await api.get<T>(endpoint, { params });
+    return response.data;
   }
 
-  // POST request
   static async post<T>(endpoint: string, data: unknown): Promise<T> {
-    try {
-      const response = await api.post<T>(endpoint, data);
-      return response.data;
-    } catch (error) {
-      this.handleError(error as AxiosError);
-      throw error;
-    }
+    const response = await api.post<T>(endpoint, data);
+    return response.data;
   }
 
-  // PUT request
   static async put<T>(endpoint: string, data: unknown): Promise<T> {
-    try {
-      const response = await api.put<T>(endpoint, data);
-      return response.data;
-    } catch (error) {
-      this.handleError(error as AxiosError);
-      throw error;
-    }
+    const response = await api.put<T>(endpoint, data);
+    return response.data;
   }
 
-  // DELETE request
-  static async delete<T>(endpoint: string): Promise<T> {
-    try {
-      const response = await api.delete<T>(endpoint);
-      return response.data;
-    } catch (error) {
-      this.handleError(error as AxiosError);
-      throw error;
-    }
-  }
-
-  // PATCH request
-  static async patch<T>(endpoint: string, data: unknown): Promise<T> {
-    try {
-      const response = await api.patch<T>(endpoint, data);
-      return response.data;
-    } catch (error) {
-      this.handleError(error as AxiosError);
-      throw error;
-    }
-  }
-
-  // Xử lý lỗi chung
-  private static handleError(error: AxiosError): void {
-    if (error.response) {
-      console.error(
-        "Server error:",
-        error.response.status,
-        error.response.data
-      );
-    } else if (error.request) {
-      console.error("Network error:", error.request);
-    } else {
-      console.error("Request error:", error.message);
-    }
+  static async delete<T>(endpoint: string, data: unknown): Promise<T> {
+    const response = await api.delete<T>(endpoint, { data });
+    return response.data;
   }
 }
 
 export default api;
+
+export interface ApiResponse<T = unknown> {
+  data: T;
+  success: boolean;
+  message?: string;
+}
