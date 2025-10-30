@@ -1,7 +1,45 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import { router } from "expo-router";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { useState } from "react"; 
+import { router, useLocalSearchParams } from "expo-router"; 
+import { authService } from "../../services/authService"; 
 
 export default function VerifyOtpScreen() {
+    // Lấy email từ màn hình trước
+    const { email } = useLocalSearchParams<{ email: string }>(); 
+    
+    const [otp, setOtp] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleVerifyOtp = async () => {
+      if (!email) {
+        Alert.alert("Lỗi", "Không tìm thấy email. Vui lòng thử lại.");
+        router.push("/forgot-password");
+        return;
+      }
+      if (loading) return;
+      setLoading(true);
+
+      try {
+        await authService.verifyOtp({ email, otp });
+
+        router.push({
+          pathname: "/reset-password",
+          params: { email: email }
+        });
+
+      } catch (error: any) {
+        console.error("Reset password failed:", error.response?.data);
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data ||
+          "Đã xảy ra lỗi. Vui lòng thử lại."; 
+
+        Alert.alert("Lỗi", errorMessage); 
+      } finally {
+        setLoading(false);
+      }
+    };
+
   return (
     <View style={styles.container}>
       {/* Title */}
@@ -19,14 +57,19 @@ export default function VerifyOtpScreen() {
         style={styles.input}
         keyboardType="number-pad"
         maxLength={6}
+        value={otp} 
+        onChangeText={setOtp} 
       />
 
       {/* Button Verify OTP */}
       <TouchableOpacity
         style={styles.primaryButton}
-        onPress={() => router.push("/reset-password")} 
+        onPress={handleVerifyOtp} 
+        disabled={loading}
       >
-        <Text style={styles.buttonText}>Xác thực OTP</Text>
+        <Text style={styles.buttonText}>
+          {loading ? "Đang xác thực..." : "Xác thực OTP"}
+        </Text>
       </TouchableOpacity>
 
       {/* Back to Login */}

@@ -1,11 +1,63 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import { router } from "expo-router";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react"; 
+import { authService } from "../../services/authService"; 
 
 export default function ResetPasswordScreen() {
-  // Thêm state để ẩn/hiện mật khẩu
+
+  // Lấy email từ màn hình trước
+  const { email } = useLocalSearchParams<{ email: string }>();
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // State ẩn/hiện mật khẩu (từ file gốc của bạn)
   const [secureNewPass, setSecureNewPass] = useState(true);
   const [secureConfirmPass, setSecureConfirmPass] = useState(true);
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      Alert.alert("Lỗi", "Không tìm thấy email. Vui lòng thử lại.");
+      router.push("/forgot-password");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Lỗi", "Mật khẩu xác nhận không khớp.");
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+       Alert.alert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự.");
+       return;
+    }
+
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      await authService.resetPassword({ email, newPassword });
+
+      Alert.alert(
+        "Thành công",
+        "Mật khẩu của bạn đã được đặt lại. Vui lòng đăng nhập.",
+        [
+          { text: "OK", onPress: () => router.replace("/login") }
+        ]
+      );
+
+    } catch (error: any) {
+      console.error("Reset password failed:", error.response?.data);
+      const errorMessage =
+      error.response?.data?.message || 
+      error.response?.data ||          
+      "Đã xảy ra lỗi. Vui lòng thử lại."; 
+      Alert.alert("Lỗi", errorMessage); 
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -21,6 +73,8 @@ export default function ResetPasswordScreen() {
         placeholderTextColor="#999"
         style={styles.input}
         secureTextEntry={secureNewPass}
+        value={newPassword}
+        onChangeText={setNewPassword} 
       />
 
       {/* Confirm New Password */}
@@ -29,14 +83,19 @@ export default function ResetPasswordScreen() {
         placeholderTextColor="#999"
         style={styles.input}
         secureTextEntry={secureConfirmPass}
+        value={confirmPassword} 
+        onChangeText={setConfirmPassword}
       />
 
       {/* Button Reset Password */}
       <TouchableOpacity
         style={styles.primaryButton}
-        onPress={() => router.replace("/login")} 
+        onPress={handleResetPassword}
+        disabled={loading}
       >
-        <Text style={styles.buttonText}>Đặt lại mật khẩu</Text>
+        <Text style={styles.buttonText}>
+          {loading ? "Đang đặt lại..." : "Đặt lại mật khẩu"}
+        </Text>
       </TouchableOpacity>
 
       {/* Back to Login */}

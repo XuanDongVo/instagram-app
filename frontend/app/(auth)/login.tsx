@@ -1,10 +1,37 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Pressable, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Pressable, StyleSheet, Alert } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { authService } from "../../services/authService"; 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState(""); 
+  const [password, setPassword] = useState(""); 
+  const [loading, setLoading] = useState(false); 
+
+  const handleLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const response = await authService.login({ email, password });
+      
+      // Lưu token
+      await AsyncStorage.setItem("accessToken", response.accessToken);
+
+      // Chuyển hướng đến trang chủ
+      router.replace("/");
+
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      const errorMessage = error.response?.data || "Email hoặc mật khẩu không chính xác.";
+      Alert.alert("Đăng nhập thất bại", errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -16,6 +43,10 @@ export default function LoginScreen() {
         placeholder="Email hoặc số điện thoại"
         placeholderTextColor="#999"
         style={styles.input}
+        value={email} 
+        onChangeText={setEmail} 
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       {/* Password */}
@@ -25,6 +56,9 @@ export default function LoginScreen() {
           placeholderTextColor="#999"
           secureTextEntry={!showPassword}
           style={styles.passwordInput}
+          value={password} 
+          onChangeText={setPassword} 
+          autoCapitalize="none"
         />
         <Pressable onPress={() => setShowPassword(!showPassword)}>
           <Ionicons
@@ -38,9 +72,12 @@ export default function LoginScreen() {
       {/* Button Login */}
       <TouchableOpacity
         style={styles.loginButton}
-        onPress={() => router.replace("/")}
+        onPress={handleLogin}
+        disabled={loading}
       >
-        <Text style={styles.buttonText}>Đăng nhập</Text>
+        <Text style={styles.buttonText}>
+          {loading ? "Đang xử lý..." : "Đăng nhập"}
+        </Text>
       </TouchableOpacity>
 
       {/* Forgot Password */}

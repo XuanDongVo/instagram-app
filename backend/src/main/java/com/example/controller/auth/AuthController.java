@@ -41,18 +41,6 @@ public class AuthController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
 	}
 
-//	@PostMapping("/forgot-password")
-//	public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-//		userService.handleForgotPassword(request.getEmail());
-//		return ResponseEntity.ok().build();
-//	}
-
-	@PostMapping("/forgot-password")
-	public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-		userService.handleForgotPassword(request.getEmail());
-		return ResponseEntity.ok("OTP đã được gửi đến email.");
-	}
-
 	@GetMapping("/check-email")
 	public ResponseEntity<?> checkEmail(@RequestParam String email) {
 		if (userRepository.findByEmail(email).isPresent()) {

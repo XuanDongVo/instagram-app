@@ -1,8 +1,51 @@
-import { StyleSheet } from "react-native";
+import { useState } from "react"; 
+import { StyleSheet, Alert } from "react-native"; 
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { router } from "expo-router";
+import { authService } from "../../services/authService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RegisterScreen() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [userName, setUserName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    if (loading) return;
+
+    if (!email || !password || !fullName || !userName) {
+      Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin.");
+      return;
+    }
+    
+    setLoading(true);
+
+    try {
+      const response = await authService.register({
+        email,
+        password,
+        userName,
+        fullName,
+      });
+
+      // Lưu token
+      await AsyncStorage.setItem("accessToken", response.accessToken);
+
+      // Chuyển hướng đến trang đăng nhập
+      router.replace("/login");
+
+    } catch (error: any) {
+      console.error("Register failed:", error);
+      const errorMessage = error.response?.data || "Đăng ký thất bại. Vui lòng thử lại.";
+      // Backend trả về "Email đã tồn tại!"
+      Alert.alert("Đăng ký thất bại", errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.scrollContainer}>
       <View style={styles.innerContainer}>
@@ -14,22 +57,33 @@ export default function RegisterScreen() {
           placeholder="Email hoặc số điện thoại"
           placeholderTextColor="#999"
           style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
         <TextInput
           placeholder="Mật khẩu"
           placeholderTextColor="#999"
           secureTextEntry
           style={styles.input}
+          value={password}
+          onChangeText={setPassword}
         />
         <TextInput
           placeholder="Tên đầy đủ"
           placeholderTextColor="#999"
           style={styles.input}
+          value={fullName}
+          onChangeText={setFullName}
         />
         <TextInput
           placeholder="Tên người dùng"
           placeholderTextColor="#999"
           style={[styles.input, { marginBottom: 24 }]}
+          value={userName}
+          onChangeText={setUserName}
+          autoCapitalize="none"
         />
 
         {/* Chính sách */}
@@ -42,9 +96,12 @@ export default function RegisterScreen() {
         {/* Nút đăng ký */}
         <TouchableOpacity
           style={styles.registerButton}
-          onPress={() => router.replace("/")}
+          onPress={handleRegister}
+          disabled={loading}
         >
-          <Text style={styles.buttonText}>Đăng ký</Text>
+          <Text style={styles.buttonText}>
+            {loading ? "Đang xử lý..." : "Đăng ký"}
+          </Text>
         </TouchableOpacity>
 
         {/* Divider */}

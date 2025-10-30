@@ -1,7 +1,41 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { router } from "expo-router";
+import { useState } from "react"; 
+import { authService } from "../../services/authService"; 
 
 export default function ForgotPasswordScreen() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSendOtp = async () => {
+      if (loading) return;
+      setLoading(true);
+
+      try {
+        await authService.checkMail({ email });
+
+        await authService.sendOtp({ email });
+
+        Alert.alert("Thành công", "Mã OTP đã được gửi đến email của bạn.");
+        router.push({
+          pathname: "/verify-otp",
+          params: { email: email } 
+        });
+
+      } catch (error: any) {
+        console.error("Reset password failed:", error.response?.data);
+
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data ||
+          "Đã xảy ra lỗi. Vui lòng thử lại."; 
+
+        Alert.alert("Lỗi", errorMessage);
+      } finally {
+        setLoading(false);
+      }
+  };
+
   return (
     <View style={styles.container}>
       {/* Title */}
@@ -19,14 +53,19 @@ export default function ForgotPasswordScreen() {
         style={styles.input}
         keyboardType="email-address"
         autoCapitalize="none"
+        value={email} 
+        onChangeText={setEmail}
       />
 
       {/* Button Send OTP */}
       <TouchableOpacity
         style={styles.primaryButton}
-        onPress={() => router.push("/verify-otp")} 
+        onPress={handleSendOtp} 
+        disabled={loading}
       >
-        <Text style={styles.buttonText}>Gửi Mã OTP</Text>
+        <Text style={styles.buttonText}>
+          {loading ? "Đang gửi..." : "Gửi Mã OTP"}
+        </Text>
       </TouchableOpacity>
 
       {/* Back to Login */}

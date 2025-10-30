@@ -90,13 +90,6 @@ public class UserService {
         return login(registerRequest.getEmail(), registerRequest.getPassword(), response);
     }
 
-    public void handleForgotPassword(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Email không tồn tại"));
-
-        otpService.generateAndSendOtp(email);
-    }
-
     public void resetPassword(String email, String newPassword) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Email không tồn tại"));
