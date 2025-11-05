@@ -3,6 +3,7 @@ import axios, {
   AxiosError,
   AxiosResponse,
   AxiosRequestConfig,
+  AxiosRequestHeaders,
 } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
@@ -18,29 +19,55 @@ export const api: AxiosInstance = axios.create({
 });
 
 // Request interceptor - thêm token xác thực và xử lý request
+// api.interceptors.request.use(
+//   (
+//     config: import("axios").InternalAxiosRequestConfig
+//   ): import("axios").InternalAxiosRequestConfig => {
+//     const token = AsyncStorage.getItem("accessToken");
+//     if (token && config.headers) {
+//       config.headers["Authorization"] = `Bearer ${token}`;
+//     }
+
+//     // Thêm header cho mobile app
+//     if (Platform.OS === "android" || Platform.OS === "ios") {
+//       if (config.headers) {
+//         config.headers["X-Mobile-App"] = "true";
+//         config.headers["X-Platform"] = Platform.OS;
+//       }
+//     }
+
+//     return config;
+//   },
+//   (error: AxiosError): Promise<never> => {
+//     console.error("Lỗi khi gửi request:", error);
+//     return Promise.reject(error);
+//   }
+// );
+
 api.interceptors.request.use(
-  (
-    config: import("axios").InternalAxiosRequestConfig
-  ): import("axios").InternalAxiosRequestConfig => {
-    const token = localStorage.getItem("accessToken");
-    if (token && config.headers) {
+  async (config) => {
+    const token = await AsyncStorage.getItem("accessToken");
+    
+    if (
+      // !config.url?.includes("/auth/register") &&
+      // !config.url?.includes("/auth/login") &&
+      token &&
+      token !== "null" &&
+      token !== "undefined" &&
+      token.trim() !== ""
+    ) {
+      if (!config.headers) config.headers = {} as AxiosRequestHeaders;
       config.headers["Authorization"] = `Bearer ${token}`;
     }
 
-    // Thêm header cho mobile app
     if (Platform.OS === "android" || Platform.OS === "ios") {
-      if (config.headers) {
-        config.headers["X-Mobile-App"] = "true";
-        config.headers["X-Platform"] = Platform.OS;
-      }
+      config.headers["X-Mobile-App"] = "true";
+      config.headers["X-Platform"] = Platform.OS;
     }
 
     return config;
   },
-  (error: AxiosError): Promise<never> => {
-    console.error("Lỗi khi gửi request:", error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(

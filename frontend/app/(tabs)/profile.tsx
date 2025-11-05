@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { router } from "expo-router";
 import {
   View,
   Text,
@@ -11,6 +12,7 @@ import {
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import FollowerListModal from "../../components/profile/FollowerListModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -64,6 +66,13 @@ export default function Profile() {
   );
 
   if (!user) return null;
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem("accessToken");
+    await AsyncStorage.removeItem("refreshToken");
+    router.replace("/login");
+  };
+
 
   return (
     <View style={styles.container}>
@@ -151,6 +160,30 @@ export default function Profile() {
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
         />
+
+        {/* {Nút đăng xuất để test thôi nha} */}
+        {isMyProfile && (
+          <View
+            style={{
+              alignItems: "center",
+              marginTop: 20,
+              marginBottom: 40,
+            }}
+          >
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{
+                backgroundColor: "#f33",
+                paddingHorizontal: 20,
+                paddingVertical: 6,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>Đăng xuất</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
       </ScrollView>
 
       {/* Modals */}
