@@ -39,6 +39,26 @@ public class FileController {
         }
     }
 
+    /**
+     * Upload story media (image or video) to Cloudinary
+     * POST /file/upload-story
+     */
+    @PostMapping("/upload-story")
+    public ResponseEntity<ApiResponse<String>> uploadStoryMedia(@RequestParam("file") MultipartFile file) {
+        try {
+            String mediaUrl = fileService.uploadStoryMedia(file);
+            return ResponseEntity.ok(
+                    ApiResponse.success(HttpStatus.OK.value(), "Tải story media thành công", mediaUrl)
+            );
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Tải story media thất bại: " + e.getMessage()));
+        }
+    }
+
     @GetMapping
     public String test(){
         System.out.println("test");
