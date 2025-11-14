@@ -20,16 +20,15 @@ import java.util.UUID;
 public class FileService {
 
     private final Cloudinary cloudinary;
-    private static final List<String> ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png");
+    private static final List<String> ALLOWED_IMAGE_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif", "webp");
+    private static final List<String> ALLOWED_VIDEO_EXTENSIONS = List.of("mp4", "mov", "avi", "wmv", "flv", "webm");
 
     public String uploadImageToCloudinary(MultipartFile file) throws IOException {
         assert file.getOriginalFilename() != null;
 
-        validateFile(file);
+        validateImageFile(file);
         // tạo tên file
         String publicValue = generatePublicValue(file.getOriginalFilename());
-        // phần mở rộng của file
-        String extension = getFileName(file.getOriginalFilename())[1];
         File fileUpload = convert(file);
         try {
 //            cloudinary.uploader().upload(fileUpload, ObjectUtils.asMap("public_id", publicValue));
@@ -46,6 +45,66 @@ public class FileService {
         }
 
 //        return  cloudinary.url().generate(StringUtils.join(publicValue, ".", extension));
+    }
+
+    /**
+     * Upload video to Cloudinary (for Story feature)
+     */
+    public String uploadVideoToCloudinary(MultipartFile file) throws IOException {
+        assert file.getOriginalFilename() != null;
+
+        validateVideoFile(file);
+        String publicValue = generatePublicValue(file.getOriginalFilename());
+        File fileUpload = convert(file);
+        try {
+            // Upload video với resource_type = "video"
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(fileUpload, 
+                ObjectUtils.asMap(
+                    "public_id", publicValue,
+                    "resource_type", "video"
+                ));
+            return (String) uploadResult.get("secure_url");
+        } catch (Exception e) {
+            throw new IOException("Failed to upload video to Cloudinary", e);
+        } finally {
+            if (fileUpload.exists()) {
+                if (!fileUpload.delete()) {
+                    System.err.println("Warning: Failed to delete temporary file " + fileUpload.getAbsolutePath());
+                }
+            }
+        }
+    }
+
+    /**
+     * Upload media (image or video) for Story - tự động detect type
+     */
+    public String uploadStoryMedia(MultipartFile file) throws IOException {
+        assert file.getOriginalFilename() != null;
+        
+        String extension = getFileName(file.getOriginalFilename())[1].toLowerCase();
+        
+        if (ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
+            return uploadImageToCloudinary(file);
+        } else if (ALLOWED_VIDEO_EXTENSIONS.contains(extension)) {
+            return uploadVideoToCloudinary(file);
+        } else {
+            throw new IllegalArgumentException("File format not supported for story. Supported: images (jpg, jpeg, png, gif, webp) and videos (mp4, mov, avi, wmv, flv, webm)");
+        }
+    }
+
+    /**
+     * Detect media type từ URL (dùng sau khi upload)
+     */
+    public String detectMediaTypeFromUrl(String url) {
+        if (url == null) return "IMAGE";
+        
+        String lowerUrl = url.toLowerCase();
+        for (String ext : ALLOWED_VIDEO_EXTENSIONS) {
+            if (lowerUrl.contains("." + ext)) {
+                return "VIDEO";
+            }
+        }
+        return "IMAGE";
     }
 
     public void deleteImageInCloudinary(String imageUrl) throws IOException {
@@ -68,10 +127,17 @@ public class FileService {
         return dotIndex != -1 ? publicIdWithExtension.substring(0, dotIndex) : publicIdWithExtension;
     }
 
-    public void validateFile(MultipartFile file) {
+    public void validateImageFile(MultipartFile file) {
         String extension = getFileName(file.getOriginalFilename())[1].toLowerCase();
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new IllegalArgumentException("File format not supported: " + extension);
+        if (!ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("Image format not supported: " + extension + ". Supported: " + ALLOWED_IMAGE_EXTENSIONS);
+        }
+    }
+
+    public void validateVideoFile(MultipartFile file) {
+        String extension = getFileName(file.getOriginalFilename())[1].toLowerCase();
+        if (!ALLOWED_VIDEO_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("Video format not supported: " + extension + ". Supported: " + ALLOWED_VIDEO_EXTENSIONS);
         }
     }
 
