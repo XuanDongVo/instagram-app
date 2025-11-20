@@ -1,3 +1,5 @@
+import { MessageStatus, MessageType } from "./chat";
+
 export interface MessageData {
   id: string;
   text: string;
@@ -9,6 +11,21 @@ export interface MessageData {
   status?: "sent" | "delivered" | "read";
   isEdited?: boolean;
   originalText?: string;
+}
+
+// Cải tiến MessageData để tương thích với Firebase
+export interface ExtendedMessageData
+  extends Omit<MessageData, "type" | "status"> {
+  chatId: string;
+  senderId: string;
+  senderName: string;
+  type: MessageType;
+  status: MessageStatus;
+  createdAt: Date;
+  updatedAt?: Date;
+  replyToMessageId?: string;
+  reactions?: { userId: string; emoji: string }[];
+  attachments?: { url: string; type: string; fileName?: string }[];
 }
 
 export interface UserData {
@@ -26,6 +43,7 @@ export interface MessageItemProps {
   timestamp: string;
   isOnline?: boolean;
   hasCamera?: boolean;
+  onPress?: () => void;
 }
 
 export interface ChatHeaderProps {
@@ -45,15 +63,15 @@ export interface ChatInputProps {
 }
 
 export interface ChatMessageProps {
-  message: MessageData;
-  onLongPress?: (message: MessageData) => void;
+  message: ExtendedMessageData;
+  onLongPress?: (message: ExtendedMessageData) => void;
 }
 
 export interface ChatMessageListProps {
-  messages: MessageData[];
+  messages: ExtendedMessageData[];
   onRefresh?: () => void;
   refreshing?: boolean;
-  onMessageLongPress?: (message: MessageData) => void;
+  onMessageLongPress?: (message: ExtendedMessageData) => void;
 }
 
 export interface MessageHeaderProps {
@@ -71,6 +89,7 @@ export interface MessageListProps {
   messages: MessageItemProps[];
   onRefresh?: () => void;
   refreshing?: boolean;
+  onItemPress?: (item: MessageItemProps) => void;
 }
 
 export interface MessageActionType {
@@ -82,9 +101,9 @@ export interface MessageActionType {
 
 export interface MessageActionModalProps {
   visible: boolean;
-  message: MessageData | null;
+  message: ExtendedMessageData | null;
   onClose: () => void;
-  onEdit?: (message: MessageData) => void;
-  onRecall?: (message: MessageData) => void;
-  onDelete?: (message: MessageData) => void;
+  onEdit?: (message: ExtendedMessageData) => void;
+  onRecall?: (message: ExtendedMessageData) => void;
+  onDelete?: (message: ExtendedMessageData) => void;
 }

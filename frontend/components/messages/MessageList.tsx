@@ -5,7 +5,8 @@ import MessageItem from './MessageItem';
 const MessageList = ({
     messages,
     onRefresh,
-    refreshing = false
+    refreshing = false,
+    onItemPress
 }: MessageListProps) => {
     const renderItem = ({ item }: { item: MessageItemProps }) => (
         <MessageItem
@@ -16,6 +17,7 @@ const MessageList = ({
             timestamp={item.timestamp}
             isOnline={item.isOnline}
             hasCamera={item.hasCamera}
+            onPress={() => onItemPress?.(item)}
         />
     );
 
