@@ -1,111 +1,154 @@
 import MessageHeader from '@/components/messages/MessageHeader';
 import MessageList from '@/components/messages/MessageList';
 import SearchBar from '@/components/messages/SearchBar';
-import { useCallback, useState } from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { useChatList, useUserPresence } from '@/hooks/useChat';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, SafeAreaView, StyleSheet } from 'react-native';
 
-const MOCK_MESSAGES = [
-    {
-        id: 'jefferey',
-        name: 'Jefferey Williams',
-        lastMessage: 'Seen on Monday',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        timestamp: '',
-        isOnline: false,
-        hasCamera: true,
-    },
-    {
-        id: 'talia',
-        name: 'Talia Gomez',
-        lastMessage: 'Seen on Wednesday',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b9c05723?w=100&h=100&fit=crop&crop=face',
-        timestamp: '',
-        isOnline: false,
-        hasCamera: true,
-    },
-    {
-        id: 'francis',
-        name: 'Francis Ofori',
-        lastMessage: 'Active 1hr ago',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-        timestamp: '',
-        isOnline: false,
-        hasCamera: true,
-    },
-    {
-        id: 'jordan',
-        name: 'Jordan Amil',
-        lastMessage: 'Active now',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
-        timestamp: '',
-        isOnline: true,
-        hasCamera: true,
-    },
-    {
-        id: 'jade',
-        name: 'Jade Chen',
-        lastMessage: 'Sent',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-        timestamp: '',
-        isOnline: false,
-        hasCamera: true,
-    },
-    {
-        id: 'sombrero',
-        name: 'sombrero_dude',
-        lastMessage: 'See you very soon.',
-        avatar: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=100&h=100&fit=crop&crop=face',
-        timestamp: '1w',
-        isOnline: false,
-        hasCamera: true,
-    },
-];
+interface CurrentUser {
+    id: string;
+    name: string;
+    avatar?: string;
+    email: string;
+}
 
 export default function MessagesIndex() {
-    const [messages, setMessages] = useState(MOCK_MESSAGES);
-    const [refreshing, setRefreshing] = useState(false);
+    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
 
-    const handleSearch = useCallback((searchText: string) => {
-        if (searchText.trim() === '') {
-            setMessages(MOCK_MESSAGES);
-        } else {
-            const filteredMessages = MOCK_MESSAGES.filter(message =>
-                message.name.toLowerCase().includes(searchText.toLowerCase())
-            );
-            setMessages(filteredMessages);
+    // Load current user from storage
+    useEffect(() => {
+        loadCurrentUser();
+    }, []);
+
+    const loadCurrentUser = async () => {
+        try {
+            const userDataString = await AsyncStorage.getItem('currentUser');
+            if (userDataString) {
+                const userData = JSON.parse(userDataString);
+                setCurrentUser(userData);
+            } else {
+                // Redirect to login if no user found
+                router.replace('/login');
+            }
+        } catch (error) {
+            console.error('Error loading user:', error);
+            router.replace('/login');
         }
-    }, []);
+    };
 
-    const handleRefresh = useCallback(() => {
-        setRefreshing(true);
-        setTimeout(() => {
-            setRefreshing(false);
-        }, 1000);
-    }, []);
+    // Use chat hooks
+    const {
+        chats,
+        loading,
+        error,
+        refreshing,
+        refresh,
+        createChat,
+        searchUsers
+    } = useChatList({ currentUser: currentUser! });
+
+    // Set up user presence
+    useUserPresence(currentUser!);
+
+    const handleSearch = useCallback(async (searchText: string) => {
+        if (!currentUser) return;
+
+        if (searchText.trim() === '') {
+            setSearchResults([]);
+            setIsSearching(false);
+        } else {
+            setIsSearching(true);
+            try {
+                const users = await searchUsers(searchText);
+                setSearchResults(users);
+            } catch (err) {
+                console.error('Search error:', err);
+                setSearchResults([]);
+            }
+        }
+    }, [currentUser, searchUsers]);
+
+    const handleRefresh = useCallback(async () => {
+        await refresh();
+    }, [refresh]);
 
     const handleVideoCall = useCallback(() => {
-        console.log('Video call pressed');
+        Alert.alert('Video Call', 'Video call feature coming soon!');
     }, []);
 
-    const handleNewMessage = useCallback(() => {
-        console.log('New message pressed');
+    const handleNewMessage = useCallback(async () => {
+        Alert.alert(
+            'New Message',
+            'Search for users to start a new conversation',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Search Users',
+                    onPress: () => {
+                        // Focus search bar or show user search modal
+                        console.log('Open user search');
+                    }
+                }
+            ]
+        );
     }, []);
+
+    const handleChatPress = useCallback((chatId: string, otherUserId: string) => {
+        router.push(`/messages/${chatId}?otherUserId=${otherUserId}`);
+    }, []);
+
+    const handleUserPress = useCallback(async (user: any) => {
+        if (!currentUser) return;
+
+        try {
+            const chatId = await createChat(user.id);
+            router.push(`/messages/${chatId}?otherUserId=${user.id}`);
+        } catch (err) {
+            Alert.alert('Error', 'Failed to create chat');
+        }
+    }, [currentUser, createChat]);
+
+    // Show loading or error states
+    if (!currentUser) {
+        return null; // Or loading spinner
+    }
+
+    if (error) {
+        Alert.alert('Error', error);
+    }
 
     return (
         <SafeAreaView style={styles.container}>
             <MessageHeader
-                username="shaliindofficial"
+                username={currentUser.name}
                 onVideoCall={handleVideoCall}
                 onNewMessage={handleNewMessage}
             />
             <SearchBar
-                placeholder="Search"
+                placeholder="Tìm kiếm người dùng hoặc cuộc trò chuyện"
                 onSearchChange={handleSearch}
             />
             <MessageList
-                messages={messages}
+                messages={isSearching ? searchResults.map(user => ({
+                    id: user.id,
+                    name: user.name || user.userName,
+                    lastMessage: user.email,
+                    avatar: user.profileImage || '',
+                    timestamp: '',
+                    isOnline: user.isOnline || false,
+                    hasCamera: false
+                })) : chats}
                 onRefresh={handleRefresh}
                 refreshing={refreshing}
+                onItemPress={isSearching ? handleUserPress : (item) => {
+                    // Extract other user ID from chat participants
+                    const otherUserId = 'other_user_id'; // TODO: Get from chat data
+                    handleChatPress(item.id, otherUserId);
+                }}
             />
         </SafeAreaView>
     );

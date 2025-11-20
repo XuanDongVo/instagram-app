@@ -10,15 +10,21 @@ const MessageItem = ({
     avatar,
     timestamp,
     isOnline = false,
-    hasCamera = true
+    hasCamera = true,
+    onPress
 }: MessageItemProps) => {
     const router = useRouter();
 
     const handlePress = () => {
-        router.push({
-            pathname: '/messages/[chatId]',
-            params: { chatId: id }
-        });
+        if (onPress) {
+            onPress();
+        } else {
+            // Default behavior
+            router.push({
+                pathname: '/messages/[chatId]',
+                params: { chatId: id }
+            });
+        }
     };
 
     return (
