@@ -27,7 +27,6 @@ class UserFirebaseService {
   async ensureUserExistsInFirebase(
     authResponse: AuthResponse,
     profileImage?: string,
-    bio?: string
   ): Promise<void> {
     const userRef = doc(this.db, "users", authResponse.id);
     const userSnap = await getDoc(userRef);
@@ -37,11 +36,9 @@ class UserFirebaseService {
       const userData = {
         id: authResponse.id,
         email: authResponse.email,
-        name: authResponse.name,
-        userName: authResponse.name, // Có thể customize sau
-        fullName: authResponse.name,
-        profileImage: profileImage || "",
-        bio: bio || "",
+        userName: authResponse.userName || "",
+        fullName: authResponse.fullName || "",
+        profileImage: profileImage || "https://velle.vn/wp-content/uploads/2025/04/avatar-mac-dinh-4-2.jpg",
         isOnline: true,
         lastSeen: serverTimestamp(),
         createdAt: serverTimestamp(),
@@ -55,7 +52,6 @@ class UserFirebaseService {
       };
 
       await setDoc(userRef, userData);
-      console.log("User created in Firebase:", authResponse.id);
     } else {
       // User đã tồn tại, cập nhật trạng thái online
       await setDoc(
@@ -67,7 +63,6 @@ class UserFirebaseService {
         },
         { merge: true }
       );
-      console.log("User updated in Firebase:", authResponse.id);
     }
   }
 
@@ -128,10 +123,6 @@ class UserFirebaseService {
    * Tìm kiếm user theo email hoặc username (cho việc tạo chat)
    */
   async searchUsers(query: string, currentUserId: string) {
-    // Note: Firestore không hỗ trợ text search trực tiếp
-    // Bạn có thể sử dụng Algolia hoặc implement client-side filtering
-    // Đây là implementation đơn giản:
-
     const usersRef = collection(this.db, "users");
     const snapshot = await getDocs(usersRef);
 
@@ -142,7 +133,6 @@ class UserFirebaseService {
       // Loại bỏ current user
       if (userData.id === currentUserId) return;
 
-      // Simple search trong name, userName, email
       const searchText = query.toLowerCase();
       if (
         userData.name?.toLowerCase().includes(searchText) ||

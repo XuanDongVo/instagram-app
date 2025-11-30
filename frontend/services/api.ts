@@ -9,41 +9,37 @@ import axios, {
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-// Function để detect môi trường và trả về BASE_URL phù hợp
+
+const LAPTOP_IP = "192.168.1.2";
+
+
 const getBaseUrl = () => {
-  // Nếu chạy trên web
   if (Platform.OS === "web") {
     return "http://localhost:8080/api";
   }
 
-  // Nếu chạy trên device thật (qua Expo Go với QR code)
-  if (Constants.executionEnvironment === "storeClient") {
-    // Lấy IP của máy host từ Expo manifest
-    const debuggerHost = Constants.expoConfig?.hostUri?.split(":")[0];
-    return debuggerHost
-      ? `http://${debuggerHost}:8080/api`
-      : "http://192.168.1.6:8080/api";
-  }
-
-  // Nếu chạy trên Android emulator
-  if (Platform.OS === "android") {
+  if (Platform.OS === "android" && !Constants.appOwnership) {
     return "http://10.0.2.2:8080/api";
   }
 
-  // Nếu chạy trên iOS simulator
-  if (Platform.OS === "ios") {
+  if (Platform.OS === "android") {
+    return `http://${LAPTOP_IP}:8080/api`;
+  }
+
+  if (Platform.OS === "ios" && !Constants.appOwnership) {
     return "http://localhost:8080/api";
   }
 
-  // Fallback
-  return "http://localhost:8080/api";
+  if (Platform.OS === "ios") {
+    return `http://${LAPTOP_IP}:8080/api`;
+  }
+
+  return `http://${LAPTOP_IP}:8080/api`;
 };
 
 const BASE_URL = getBaseUrl();
+console.log("🔍 BASE_URL đang dùng:", BASE_URL);
 
-console.log(`🌐 API Base URL: ${BASE_URL}`);
-console.log(`📱 Platform: ${Platform.OS}`);
-console.log(`🔧 Execution Environment: ${Constants.executionEnvironment}`);
 
 export const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,

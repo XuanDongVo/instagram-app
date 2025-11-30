@@ -7,29 +7,26 @@ import {
   getFirestore,
   limit,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
-  startAfter,
+  setDoc,
   Timestamp,
   updateDoc,
-  where,
+  where
 } from "firebase/firestore";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { getFirebaseApp } from "../firebaseConfig";
 
 import {
   ChatPagination,
-  ChatParticipant,
   ChatType,
-  CreateChatRequest,
   FirebaseChat,
   FirebaseMessage,
   MessagePagination,
   MessageStatus,
   SendMessageRequest,
   TypingIndicator,
-  UserStatus,
+  UserStatus
 } from "../types/chat";
 
 class ChatService {
@@ -49,36 +46,45 @@ class ChatService {
    */
   async createChat(
     currentUserId: string,
-    request: CreateChatRequest
+    currentUserName: string,
+    otherUserId: string,
+    otherUserName: string
   ): Promise<string> {
-    // Kiểm tra chỉ có 2 người tham gia
-    if (request.participantIds.length !== 2) {
-      throw new Error("Private chat must have exactly 2 participants");
+    // Kiểm tra tham số
+    if (!currentUserId || !otherUserId) {
+      throw new Error("Both user IDs are required");
     }
 
-    // Kiểm tra currentUserId có trong participants không
-    if (!request.participantIds.includes(currentUserId)) {
-      throw new Error("Current user must be in participants");
+    if (currentUserId === otherUserId) {
+      throw new Error("Cannot create chat with yourself");
     }
 
+    // Tạo timestamp một lần để tái sử dụng
+    const now = Timestamp.fromDate(new Date());
+    
     const chatData: Omit<FirebaseChat, "id"> = {
       type: ChatType.PRIVATE,
-      participants: request.participantIds.map(
-        (userId) =>
-          ({
-            userId,
-            userName: "", // Sẽ được update sau
-            joinedAt: serverTimestamp() as Timestamp,
-            isActive: true,
-          } as ChatParticipant)
-      ),
+      participants: [
+        {
+          userId: currentUserId,
+          userName: currentUserName || "Unknown User",
+          joinedAt: now, // Sử dụng timestamp đã tạo sẵn
+          isActive: true,
+        },
+        {
+          userId: otherUserId,
+          userName: otherUserName || "Unknown User", 
+          joinedAt: now, // Sử dụng timestamp đã tạo sẵn
+          isActive: true,
+        }
+      ],
       createdBy: currentUserId,
-      createdAt: serverTimestamp() as Timestamp,
+      createdAt: serverTimestamp() as Timestamp, 
       updatedAt: serverTimestamp() as Timestamp,
       isActive: true,
       settings: {
         muteNotifications: false,
-        maxFileSize: 10, // 10MB
+        maxFileSize: 10, 
         allowedFileTypes: [
           "image/jpeg",
           "image/png",
@@ -93,30 +99,46 @@ class ChatService {
   }
 
   /**
-   * Lấy danh sách chat của user
+   * Lấy danh sách chat của user (sử dụng callback thay vì return onSnapshot)
    */
-  getUserChats(userId: string, pagination?: ChatPagination) {
+  getUserChats(
+    userId: string, 
+    callback: (chats: (FirebaseChat & { id: string })[]) => void,
+    pagination?: ChatPagination
+  ) {
+    // Query tất cả chat trước, rồi filter client-side
+    // Vì Firebase không hỗ trợ array-contains với nested objects
     let q = query(
       collection(this.db, "chats"),
-      where("participants", "array-contains-any", [userId]),
-      where("isActive", "==", true),
-      orderBy("updatedAt", "desc"),
       limit(pagination?.limit || 20)
     );
 
-    if (pagination?.lastChatId) {
-      const lastChatDoc = doc(this.db, "chats", pagination.lastChatId);
-      q = query(q, startAfter(lastChatDoc));
-    }
-
     return onSnapshot(q, (snapshot) => {
       const chats: (FirebaseChat & { id: string })[] = [];
-      snapshot.forEach((doc) => {
-        chats.push({ id: doc.id, ...doc.data() } as FirebaseChat & {
+      snapshot.forEach((docSnap) => {
+        const chatData = { id: docSnap.id, ...docSnap.data() } as FirebaseChat & {
           id: string;
-        });
+        };
+        
+        // Filter client-side để check user có trong participants không
+        const isUserInChat = chatData.participants?.some(
+          participant => participant.userId === userId
+        );
+        
+        if (isUserInChat) {
+          chats.push(chatData);
+        }
       });
-      return chats;
+      
+      // Sort by updatedAt ở client-side
+      chats.sort((a, b) => {
+        const aTime = a.updatedAt?.toDate?.() || new Date(0);
+        const bTime = b.updatedAt?.toDate?.() || new Date(0);
+        return bTime.getTime() - aTime.getTime(); // Newest first
+      });
+      
+      // Call callback với kết quả
+      callback(chats);
     });
   }
 
@@ -150,20 +172,22 @@ class ChatService {
       chatId: request.chatId,
       senderId: currentUserId,
       senderName: currentUserName,
-      senderAvatar: currentUserAvatar,
+      ...(currentUserAvatar && { senderAvatar: currentUserAvatar }), 
       type: request.type,
       content: request.content,
-      attachments: request.attachments?.map((att) => ({
-        id: "", // Sẽ được generate
-        url: "", // Sẽ được upload
-        ...att,
-      })),
+      ...(request.attachments && request.attachments.length > 0 && { 
+        attachments: request.attachments.map((att) => ({
+          id: "", // Sẽ được generate
+          url: "", // Sẽ được upload
+          ...att,
+        }))
+      }),
       status: MessageStatus.SENDING,
       createdAt: serverTimestamp() as Timestamp,
       isEdited: false,
-      replyToMessageId: request.replyToMessageId,
-      reactions: [],
-      readBy: [],
+      ...(request.replyToMessageId && { replyToMessageId: request.replyToMessageId }),
+      reactions: [], // Empty array - không có serverTimestamp
+      readBy: [],    // Empty array - không có serverTimestamp
       isDeleted: false,
     };
 
@@ -189,39 +213,44 @@ class ChatService {
       senderId: currentUserId,
       senderName: currentUserName,
       type: request.type,
-      timestamp: serverTimestamp() as Timestamp,
+      timestamp: Timestamp.fromDate(new Date()), 
     });
 
     return docRef.id;
   }
 
   /**
-   * Lấy tin nhắn của chat với pagination
+   * Lấy tin nhắn của chat với pagination 
    */
-  getChatMessages(pagination: MessagePagination) {
+  getChatMessages(
+    pagination: MessagePagination,
+    callback: (messages: (FirebaseMessage & { id: string })[]) => void
+  ) {
     let q = query(
       collection(this.db, "messages"),
       where("chatId", "==", pagination.chatId),
-      where("isDeleted", "==", false),
-      orderBy("createdAt", "desc"),
       limit(pagination.limit)
     );
 
-    if (pagination.before) {
-      q = query(q, where("createdAt", "<", pagination.before));
-    }
-    if (pagination.after) {
-      q = query(q, where("createdAt", ">", pagination.after));
-    }
-
     return onSnapshot(q, (snapshot) => {
       const messages: (FirebaseMessage & { id: string })[] = [];
-      snapshot.forEach((doc) => {
-        messages.push({ id: doc.id, ...doc.data() } as FirebaseMessage & {
+      snapshot.forEach((docSnap) => {
+        const messageData = { id: docSnap.id, ...docSnap.data() } as FirebaseMessage & {
           id: string;
-        });
+        };
+        
+        if (!messageData.isDeleted) {
+          messages.push(messageData);
+        }
       });
-      return messages.reverse(); // Để hiển thị từ cũ đến mới
+      
+      messages.sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return aTime.getTime() - bTime.getTime();
+      });
+      
+      callback(messages);
     });
   }
 
@@ -274,7 +303,7 @@ class ChatService {
       if (!alreadyRead) {
         readBy.push({
           userId: currentUserId,
-          readAt: serverTimestamp() as Timestamp,
+          readAt: Timestamp.fromDate(new Date()), 
         });
 
         await updateDoc(messageRef, {
@@ -285,21 +314,22 @@ class ChatService {
     }
   }
 
-  // ===== USER PRESENCE =====
+  // ===== USER PRESENCE  =====
 
   /**
-   * Cập nhật trạng thái online/offline
+   * Cập nhật trạng thái online/offline trong users collection
    */
   async updateUserPresence(userId: string, status: UserStatus): Promise<void> {
-    const presenceData = {
-      userId: userId,
-      status,
+    const userRef = doc(this.db, "users", userId);
+    
+    // Cập nhật trạng thái trong users collection 
+    const updateData = {
+      isOnline: status === UserStatus.ONLINE,
       lastSeen: serverTimestamp(),
-      isTyping: false,
+      updatedAt: serverTimestamp(),
     };
 
-    const presenceRef = doc(this.db, "presence", userId);
-    await updateDoc(presenceRef, presenceData);
+    await setDoc(userRef, updateData, { merge: true });
   }
 
   /**
@@ -313,7 +343,8 @@ class ChatService {
   ): Promise<void> {
     const typingRef = doc(this.db, "typing", `${chatId}_${userId}`);
     if (isTyping) {
-      await updateDoc(typingRef, {
+      // Sử dụng setDoc để tạo document nếu chưa có
+      await setDoc(typingRef, {
         chatId,
         userId: userId,
         userName: userName,
@@ -321,14 +352,23 @@ class ChatService {
         timestamp: serverTimestamp(),
       });
     } else {
-      await deleteDoc(typingRef);
+      // Xóa document typing khi user ngừng gõ
+      try {
+        await deleteDoc(typingRef);
+      } catch (error) {
+        // Document có thể không tồn tại, ignore error
+        console.log('Typing document not found (normal):', error);
+      }
     }
   }
 
   /**
    * Lắng nghe trạng thái typing trong chat
    */
-  listenToTypingIndicators(chatId: string) {
+  listenToTypingIndicators(
+    chatId: string,
+    callback: (typingUsers: TypingIndicator[]) => void
+  ) {
     const q = query(
       collection(this.db, "typing"),
       where("chatId", "==", chatId),
@@ -340,7 +380,7 @@ class ChatService {
       snapshot.forEach((doc) => {
         typingUsers.push(doc.data() as TypingIndicator);
       });
-      return typingUsers;
+      callback(typingUsers);
     });
   }
 
@@ -364,7 +404,6 @@ class ChatService {
       }`;
       const storageRef = ref(this.storage, `chat-attachments/${fileName}`);
 
-      // Giả sử attachment.file là File object
       const snapshot = await uploadBytes(storageRef, attachment.file);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
@@ -395,16 +434,6 @@ class ChatService {
       lastMessage,
       updatedAt: serverTimestamp(),
     });
-  }
-
-  /**
-   * Cleanup khi component unmount
-   */
-  cleanup(userId?: string) {
-    // Xóa typing indicators
-    if (userId) {
-      // Có thể thêm logic cleanup ở đây
-    }
   }
 }
 
