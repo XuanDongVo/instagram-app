@@ -140,8 +140,8 @@ export default function MessagesIndex() {
             <MessageList
                 messages={isSearching ? searchResults.map(user => ({
                     id: user.id,
-                    name: user.name || user.userName,
-                    lastMessage: user.email,
+                    name: user.name || user.fullName,
+                    lastMessage: user.userName,
                     avatar: user.profileImage || '',
                     timestamp: '',
                     isOnline: user.isOnline || false,

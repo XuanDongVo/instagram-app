@@ -1,4 +1,6 @@
 import { Timestamp } from "firebase/firestore";
+import { ExtendedMessageData } from "./messages";
+import { CurrentUser } from "./user";
 
 // Enum cho các loại tin nhắn
 export enum MessageType {
@@ -273,4 +275,51 @@ export interface ChatAnalytics {
   topSenders: { userId: string; messageCount: number }[];
   mediaShared: number;
   averageResponseTime: number; 
+}
+
+export interface UseChatReturn {
+  messages: ExtendedMessageData[];
+  loading: boolean;
+  error: string | null;
+  sendMessage: (text: string) => Promise<void>;
+  sendImage: (imageUri: string) => Promise<void>;
+  editMessage: (messageId: string, newText: string) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
+  recallMessage: (messageId: string) => Promise<void>;
+  markAsRead: () => Promise<void>;
+  isTyping: boolean;
+  setIsTyping: (typing: boolean) => void;
+  otherUserTyping: boolean;
+}
+
+export interface UseChatProps {
+  chatId: string;
+  currentUser: CurrentUser;
+  otherUserId: string;
+}
+
+export interface UseChatListProps {
+  currentUser: CurrentUser;
+}
+
+export interface ChatListItem {
+  id: string;
+  name: string;
+  lastMessage: string;
+  avatar: string;
+  timestamp: string;
+  isOnline?: boolean;
+  unreadCount?: number;
+  otherUserId?: string; 
+}
+
+export interface UseChatListReturn {
+  chats: ChatListItem[];
+  loading: boolean;
+  error: string | null;
+  refreshing: boolean;
+  refresh: () => Promise<void>;
+  createChat: (otherUserId: string, otherUserName: string) => Promise<string>;
+  searchUsers: (query: string) => Promise<any[]>;
+  findExistingChat: (otherUserId: string) => ChatListItem | undefined;
 }

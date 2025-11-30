@@ -3,15 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { chatService } from "../services/chatService";
 import { userFirebaseService } from "../services/userFirebaseService";
-import {
-  FirebaseMessage,
-  MessageType,
-  UserStatus
-} from "../types/chat";
+import { FirebaseMessage, MessageType, UserStatus } from "../types/chat";
 import { ExtendedMessageData } from "../types/messages";
 import { CurrentUser } from "../types/user";
+import { UseChatReturn, UseChatProps, UseChatListProps, ChatListItem, UseChatListReturn} from "../types/chat";
 
-// Helper function to format time 
+// Helper function to format time
 const formatInstagramTime = (date: Date): string => {
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();
@@ -19,7 +16,7 @@ const formatInstagramTime = (date: Date): string => {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
   const diffInWeeks = Math.floor(diffInDays / 7);
-  
+
   if (diffInMinutes < 1) {
     return "now";
   } else if (diffInMinutes < 60) {
@@ -32,8 +29,8 @@ const formatInstagramTime = (date: Date): string => {
     return `${diffInWeeks}w`;
   } else {
     // Show date format for older messages
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   }
@@ -42,38 +39,16 @@ const formatInstagramTime = (date: Date): string => {
 // Helper function to safely convert Firebase timestamp
 const safeToDate = (timestamp: any): Date => {
   if (!timestamp) {
-    return new Date(); // Fallback to current time
+    return new Date(); 
   }
-  if (typeof timestamp.toDate === 'function') {
+  if (typeof timestamp.toDate === "function") {
     return timestamp.toDate();
   }
   if (timestamp instanceof Date) {
     return timestamp;
   }
-  // Try to parse as timestamp
   return new Date(timestamp);
 };
-
-interface UseChatProps {
-  chatId: string;
-  currentUser: CurrentUser;
-  otherUserId: string;
-}
-
-interface UseChatReturn {
-  messages: ExtendedMessageData[];
-  loading: boolean;
-  error: string | null;
-  sendMessage: (text: string) => Promise<void>;
-  sendImage: (imageUri: string) => Promise<void>;
-  editMessage: (messageId: string, newText: string) => Promise<void>;
-  deleteMessage: (messageId: string) => Promise<void>;
-  recallMessage: (messageId: string) => Promise<void>;
-  markAsRead: () => Promise<void>;
-  isTyping: boolean;
-  setIsTyping: (typing: boolean) => void;
-  otherUserTyping: boolean;
-}
 
 export function useChat({
   chatId,
@@ -94,16 +69,18 @@ export function useChat({
   const convertFirebaseMessage = useCallback(
     (fbMessage: FirebaseMessage & { id: string }): ExtendedMessageData => {
       const createdAt = safeToDate(fbMessage.createdAt);
-      const updatedAt = fbMessage.updatedAt ? safeToDate(fbMessage.updatedAt) : undefined;
-      
+      const updatedAt = fbMessage.updatedAt
+        ? safeToDate(fbMessage.updatedAt)
+        : undefined;
+
       return {
         id: fbMessage.id,
         chatId: fbMessage.chatId,
         senderId: fbMessage.senderId,
         senderName: fbMessage.senderName,
         text: fbMessage.content,
-        timestamp: formatInstagramTime(createdAt), 
-        isMe: fbMessage.senderId === (currentUser?.id || ''),
+        timestamp: formatInstagramTime(createdAt),
+        isMe: fbMessage.senderId === (currentUser?.id || ""),
         avatar: fbMessage.senderAvatar,
         type: fbMessage.type,
         imageUrl: fbMessage.attachments?.[0]?.url,
@@ -135,7 +112,6 @@ export function useChat({
     setError(null);
 
     try {
-      // chatService.getChatMessages nhận callback để update messages
       const unsubscribe = chatService.getChatMessages(
         {
           chatId,
@@ -143,15 +119,17 @@ export function useChat({
         },
         (firebaseMessages) => {
           // Convert Firebase messages to ExtendedMessageData
-          const convertedMessages = firebaseMessages.map(convertFirebaseMessage);
-          
+          const convertedMessages = firebaseMessages.map(
+            convertFirebaseMessage
+          );
+
           // Sort messages by timestamp (cũ đến mới để hiển thị đúng trong chat)
           convertedMessages.sort((a, b) => {
             const aTime = a.createdAt?.getTime() || 0;
             const bTime = b.createdAt?.getTime() || 0;
             return aTime - bTime; // Từ cũ đến mới
           });
-          
+
           setMessages(convertedMessages);
           setLoading(false);
         }
@@ -159,7 +137,6 @@ export function useChat({
 
       // Lưu unsubscribe function
       unsubscribeMessages.current = unsubscribe;
-
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
       setLoading(false);
@@ -206,10 +183,10 @@ export function useChat({
   const sendMessage = useCallback(
     async (text: string) => {
       if (!currentUser?.id) {
-        console.error('Cannot send message: user not authenticated');
+        console.error("Cannot send message: user not authenticated");
         return;
       }
-      
+
       try {
         setError(null);
         await chatService.sendMessage(
@@ -236,10 +213,10 @@ export function useChat({
   const sendImage = useCallback(
     async (imageUri: string) => {
       if (!currentUser?.id) {
-        console.error('Cannot send image: user not authenticated');
+        console.error("Cannot send image: user not authenticated");
         return;
       }
-      
+
       try {
         setError(null);
 
@@ -325,7 +302,7 @@ export function useChat({
     if (!currentUser?.id) {
       return;
     }
-    
+
     try {
       // Mark all unread messages as read
       const unreadMessages = messages.filter(
@@ -347,7 +324,7 @@ export function useChat({
       if (!currentUser?.id) {
         return;
       }
-      
+
       setIsTyping(typing);
 
       // Clear existing timeout
@@ -357,7 +334,12 @@ export function useChat({
 
       // Update typing status
       chatService
-        .updateTypingStatus(currentUser.id, currentUser.fullName || currentUser.userName, chatId, typing)
+        .updateTypingStatus(
+          currentUser.id,
+          currentUser.fullName || currentUser.userName,
+          chatId,
+          typing
+        )
         .catch(console.error);
 
       // Auto-stop typing after 3 seconds
@@ -365,7 +347,12 @@ export function useChat({
         typingTimeout.current = setTimeout(() => {
           setIsTyping(false);
           chatService
-            .updateTypingStatus(currentUser.id, currentUser.fullName || currentUser.userName, chatId, false)
+            .updateTypingStatus(
+              currentUser.id,
+              currentUser.fullName || currentUser.userName,
+              chatId,
+              false
+            )
             .catch(console.error);
         }, 3000);
       }
@@ -387,32 +374,6 @@ export function useChat({
     setIsTyping: handleTyping,
     otherUserTyping,
   };
-}
-
-interface UseChatListProps {
-  currentUser: CurrentUser;
-}
-
-interface ChatListItem {
-  id: string;
-  name: string;
-  lastMessage: string;
-  avatar: string;
-  timestamp: string;
-  isOnline?: boolean;
-  unreadCount?: number;
-  otherUserId?: string; // ID của người dùng khác trong chat
-}
-
-interface UseChatListReturn {
-  chats: ChatListItem[];
-  loading: boolean;
-  error: string | null;
-  refreshing: boolean;
-  refresh: () => Promise<void>;
-  createChat: (otherUserId: string, otherUserName: string) => Promise<string>;
-  searchUsers: (query: string) => Promise<any[]>;
-  findExistingChat: (otherUserId: string) => ChatListItem | undefined;
 }
 
 export function useChatList({
@@ -444,14 +405,16 @@ export function useChatList({
             const chatItems: ChatListItem[] = firebaseChats.map((chat) => {
               // Tìm participant khác (không phải current user)
               const otherParticipant = chat.participants?.find(
-                p => p.userId !== currentUser.id
+                (p) => p.userId !== currentUser.id
               );
-              
+
               // Safely get timestamp for last message
-              const lastMessageTime = chat.lastMessage?.timestamp ? 
-                safeToDate(chat.lastMessage.timestamp) : 
-                chat.updatedAt ? safeToDate(chat.updatedAt) : new Date();
-              
+              const lastMessageTime = chat.lastMessage?.timestamp
+                ? safeToDate(chat.lastMessage.timestamp)
+                : chat.updatedAt
+                ? safeToDate(chat.updatedAt)
+                : new Date();
+
               return {
                 id: chat.id,
                 name: otherParticipant?.userName || "Unknown User",
@@ -459,20 +422,19 @@ export function useChatList({
                 avatar: otherParticipant?.userAvatar || "",
                 timestamp: formatInstagramTime(lastMessageTime), // Format kiểu Instagram
                 isOnline: false, // TODO: Get from user presence
-                unreadCount: 0,  // TODO: Calculate unread count
+                unreadCount: 0, // TODO: Calculate unread count
                 otherUserId: otherParticipant?.userId, // Lưu ID của user khác
               };
             });
-            
+
             setChats(chatItems);
             setLoading(false);
           },
-          { 
+          {
             userId: currentUser.id,
-            limit: 20 
+            limit: 20,
           }
         );
-
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to load chats";
@@ -501,12 +463,14 @@ export function useChatList({
   const createChat = useCallback(
     async (otherUserId: string, otherUserName: string): Promise<string> => {
       if (!currentUser || !currentUser.id) {
-        throw new Error('User not authenticated');
+        throw new Error("User not authenticated");
       }
 
       try {
         // Kiểm tra xem đã có chat với user này chưa
-        const existingChats = chats.filter(chat => chat.otherUserId === otherUserId);
+        const existingChats = chats.filter(
+          (chat) => chat.otherUserId === otherUserId
+        );
         if (existingChats.length > 0) {
           // Trả về chat ID hiện có
           return existingChats[0].id;
@@ -522,7 +486,6 @@ export function useChatList({
 
         // Chat list will auto-update via Firebase listener
         return chatId;
-
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to create chat";
@@ -551,7 +514,7 @@ export function useChatList({
 
   const findExistingChat = useCallback(
     (otherUserId: string): ChatListItem | undefined => {
-      return chats.find(chat => chat.otherUserId === otherUserId);
+      return chats.find((chat) => chat.otherUserId === otherUserId);
     },
     [chats]
   );
@@ -568,7 +531,7 @@ export function useChatList({
   };
 }
 
-// Hook for user presence 
+// Hook for user presence
 export function useUserPresence(currentUser: CurrentUser) {
   useEffect(() => {
     if (!currentUser || !currentUser.id) {
@@ -594,8 +557,11 @@ export function useUserPresence(currentUser: CurrentUser) {
     };
 
     // Listen for app state changes
-    const { AppState } = require('react-native');
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const { AppState } = require("react-native");
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
 
     return () => {
       // Cleanup khi component unmount
