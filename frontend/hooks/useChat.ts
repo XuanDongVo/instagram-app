@@ -4,19 +4,55 @@ import { Alert } from "react-native";
 import { chatService } from "../services/chatService";
 import { userFirebaseService } from "../services/userFirebaseService";
 import {
-  ChatType,
   FirebaseMessage,
   MessageType,
-  UserStatus,
+  UserStatus
 } from "../types/chat";
 import { ExtendedMessageData } from "../types/messages";
+import { CurrentUser } from "../types/user";
 
-interface CurrentUser {
-  id: string;
-  name: string;
-  avatar?: string;
-  email: string;
-}
+// Helper function to format time 
+const formatInstagramTime = (date: Date): string => {
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  const diffInWeeks = Math.floor(diffInDays / 7);
+  
+  if (diffInMinutes < 1) {
+    return "now";
+  } else if (diffInMinutes < 60) {
+    return `${diffInMinutes}m`;
+  } else if (diffInHours < 24) {
+    return `${diffInHours}h`;
+  } else if (diffInDays < 7) {
+    return `${diffInDays}d`;
+  } else if (diffInWeeks < 4) {
+    return `${diffInWeeks}w`;
+  } else {
+    // Show date format for older messages
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+};
+
+// Helper function to safely convert Firebase timestamp
+const safeToDate = (timestamp: any): Date => {
+  if (!timestamp) {
+    return new Date(); // Fallback to current time
+  }
+  if (typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  // Try to parse as timestamp
+  return new Date(timestamp);
+};
 
 interface UseChatProps {
   chatId: string;
@@ -57,22 +93,25 @@ export function useChat({
   // Convert Firebase message to ExtendedMessageData
   const convertFirebaseMessage = useCallback(
     (fbMessage: FirebaseMessage & { id: string }): ExtendedMessageData => {
+      const createdAt = safeToDate(fbMessage.createdAt);
+      const updatedAt = fbMessage.updatedAt ? safeToDate(fbMessage.updatedAt) : undefined;
+      
       return {
         id: fbMessage.id,
         chatId: fbMessage.chatId,
         senderId: fbMessage.senderId,
         senderName: fbMessage.senderName,
         text: fbMessage.content,
-        timestamp: fbMessage.createdAt.toDate().toISOString(),
-        isMe: fbMessage.senderId === currentUser.id,
+        timestamp: formatInstagramTime(createdAt), 
+        isMe: fbMessage.senderId === (currentUser?.id || ''),
         avatar: fbMessage.senderAvatar,
         type: fbMessage.type,
         imageUrl: fbMessage.attachments?.[0]?.url,
         status: fbMessage.status,
         isEdited: fbMessage.isEdited,
         originalText: fbMessage.originalContent,
-        createdAt: fbMessage.createdAt.toDate(),
-        updatedAt: fbMessage.updatedAt?.toDate(),
+        createdAt: createdAt,
+        updatedAt: updatedAt,
         replyToMessageId: fbMessage.replyToMessageId,
         reactions: fbMessage.reactions?.map((r) => ({
           userId: r.userId,
@@ -85,7 +124,7 @@ export function useChat({
         })),
       };
     },
-    [currentUser.id]
+    [currentUser?.id]
   );
 
   // Listen to messages
@@ -93,19 +132,34 @@ export function useChat({
     if (!chatId) return;
 
     setLoading(true);
+    setError(null);
 
     try {
-      const unsubscribe = chatService.getChatMessages({
-        chatId,
-        limit: 50,
-      });
+      // chatService.getChatMessages nhận callback để update messages
+      const unsubscribe = chatService.getChatMessages(
+        {
+          chatId,
+          limit: 50,
+        },
+        (firebaseMessages) => {
+          // Convert Firebase messages to ExtendedMessageData
+          const convertedMessages = firebaseMessages.map(convertFirebaseMessage);
+          
+          // Sort messages by timestamp (cũ đến mới để hiển thị đúng trong chat)
+          convertedMessages.sort((a, b) => {
+            const aTime = a.createdAt?.getTime() || 0;
+            const bTime = b.createdAt?.getTime() || 0;
+            return aTime - bTime; // Từ cũ đến mới
+          });
+          
+          setMessages(convertedMessages);
+          setLoading(false);
+        }
+      );
 
-      // Mock implementation - replace with real Firebase listener
-      unsubscribeMessages.current = () => {
-        // Real implementation will be here
-      };
+      // Lưu unsubscribe function
+      unsubscribeMessages.current = unsubscribe;
 
-      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
       setLoading(false);
@@ -114,21 +168,28 @@ export function useChat({
     return () => {
       if (unsubscribeMessages.current) {
         unsubscribeMessages.current();
+        unsubscribeMessages.current = null;
       }
     };
-  }, [chatId]);
+  }, [chatId, convertFirebaseMessage]);
 
   // Listen to typing indicators
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId || !currentUser?.id) return;
 
     try {
-      const unsubscribe = chatService.listenToTypingIndicators(chatId);
+      const unsubscribe = chatService.listenToTypingIndicators(
+        chatId,
+        (typingUsers) => {
+          // Kiểm tra xem có ai khác đang gõ không (không phải current user)
+          const otherUserTyping = typingUsers.some(
+            (user) => user.userId !== currentUser.id
+          );
+          setOtherUserTyping(otherUserTyping);
+        }
+      );
 
-      // Mock implementation
-      unsubscribeTyping.current = () => {
-        // Real implementation
-      };
+      unsubscribeTyping.current = unsubscribe;
     } catch (err) {
       console.error("Error listening to typing:", err);
     }
@@ -136,18 +197,24 @@ export function useChat({
     return () => {
       if (unsubscribeTyping.current) {
         unsubscribeTyping.current();
+        unsubscribeTyping.current = null;
       }
     };
-  }, [chatId, currentUser.id]);
+  }, [chatId, currentUser?.id]);
 
   // Send text message
   const sendMessage = useCallback(
     async (text: string) => {
+      if (!currentUser?.id) {
+        console.error('Cannot send message: user not authenticated');
+        return;
+      }
+      
       try {
         setError(null);
         await chatService.sendMessage(
           currentUser.id,
-          currentUser.name,
+          currentUser.fullName || currentUser.userName,
           currentUser.avatar,
           {
             chatId,
@@ -168,6 +235,11 @@ export function useChat({
   // Send image
   const sendImage = useCallback(
     async (imageUri: string) => {
+      if (!currentUser?.id) {
+        console.error('Cannot send image: user not authenticated');
+        return;
+      }
+      
       try {
         setError(null);
 
@@ -181,7 +253,7 @@ export function useChat({
 
         await chatService.sendMessage(
           currentUser.id,
-          currentUser.name,
+          currentUser.fullName || currentUser.userName,
           currentUser.avatar,
           {
             chatId,
@@ -250,6 +322,10 @@ export function useChat({
 
   // Mark messages as read
   const markAsRead = useCallback(async () => {
+    if (!currentUser?.id) {
+      return;
+    }
+    
     try {
       // Mark all unread messages as read
       const unreadMessages = messages.filter(
@@ -263,11 +339,15 @@ export function useChat({
     } catch (err) {
       console.error("Failed to mark messages as read:", err);
     }
-  }, [messages, currentUser.id]);
+  }, [messages, currentUser?.id]);
 
   // Handle typing status
   const handleTyping = useCallback(
     (typing: boolean) => {
+      if (!currentUser?.id) {
+        return;
+      }
+      
       setIsTyping(typing);
 
       // Clear existing timeout
@@ -277,7 +357,7 @@ export function useChat({
 
       // Update typing status
       chatService
-        .updateTypingStatus(currentUser.id, currentUser.name, chatId, typing)
+        .updateTypingStatus(currentUser.id, currentUser.fullName || currentUser.userName, chatId, typing)
         .catch(console.error);
 
       // Auto-stop typing after 3 seconds
@@ -285,7 +365,7 @@ export function useChat({
         typingTimeout.current = setTimeout(() => {
           setIsTyping(false);
           chatService
-            .updateTypingStatus(currentUser.id, currentUser.name, chatId, false)
+            .updateTypingStatus(currentUser.id, currentUser.fullName || currentUser.userName, chatId, false)
             .catch(console.error);
         }, 3000);
       }
@@ -309,7 +389,6 @@ export function useChat({
   };
 }
 
-// Hook for chat list
 interface UseChatListProps {
   currentUser: CurrentUser;
 }
@@ -322,6 +401,7 @@ interface ChatListItem {
   timestamp: string;
   isOnline?: boolean;
   unreadCount?: number;
+  otherUserId?: string; // ID của người dùng khác trong chat
 }
 
 interface UseChatListReturn {
@@ -330,8 +410,9 @@ interface UseChatListReturn {
   error: string | null;
   refreshing: boolean;
   refresh: () => Promise<void>;
-  createChat: (otherUserId: string) => Promise<string>;
+  createChat: (otherUserId: string, otherUserName: string) => Promise<string>;
   searchUsers: (query: string) => Promise<any[]>;
+  findExistingChat: (otherUserId: string) => ChatListItem | undefined;
 }
 
 export function useChatList({
@@ -344,51 +425,104 @@ export function useChatList({
 
   // Load user chats
   useEffect(() => {
-    loadChats();
-  }, [currentUser.id]);
-
-  const loadChats = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Get chats from Firebase
-      const unsubscribe = chatService.getUserChats(currentUser.id, {
-        userId: currentUser.id,
-        limit: 20,
-      });
-
-      // Mock implementation - replace with real listener
-      // const mockChats = await getMockChats();
-      // setChats(mockChats);
-
-      setLoading(false);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load chats";
-      setError(errorMessage);
-      setLoading(false);
+    if (!currentUser || !currentUser.id) {
+      return;
     }
-  }, [currentUser.id]);
+
+    let unsubscribe: (() => void) | undefined;
+
+    const setupChatListener = () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get chats from Firebase với callback
+        unsubscribe = chatService.getUserChats(
+          currentUser.id,
+          (firebaseChats) => {
+            // Transform Firebase chats to ChatListItem
+            const chatItems: ChatListItem[] = firebaseChats.map((chat) => {
+              // Tìm participant khác (không phải current user)
+              const otherParticipant = chat.participants?.find(
+                p => p.userId !== currentUser.id
+              );
+              
+              // Safely get timestamp for last message
+              const lastMessageTime = chat.lastMessage?.timestamp ? 
+                safeToDate(chat.lastMessage.timestamp) : 
+                chat.updatedAt ? safeToDate(chat.updatedAt) : new Date();
+              
+              return {
+                id: chat.id,
+                name: otherParticipant?.userName || "Unknown User",
+                lastMessage: chat.lastMessage?.content || "No messages yet",
+                avatar: otherParticipant?.userAvatar || "",
+                timestamp: formatInstagramTime(lastMessageTime), // Format kiểu Instagram
+                isOnline: false, // TODO: Get from user presence
+                unreadCount: 0,  // TODO: Calculate unread count
+                otherUserId: otherParticipant?.userId, // Lưu ID của user khác
+              };
+            });
+            
+            setChats(chatItems);
+            setLoading(false);
+          },
+          { 
+            userId: currentUser.id,
+            limit: 20 
+          }
+        );
+
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load chats";
+        setError(errorMessage);
+        setLoading(false);
+      }
+    };
+
+    setupChatListener();
+
+    // Cleanup function
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [currentUser?.id]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    await loadChats();
+    // Force re-run useEffect by updating a trigger state
+    setError(null);
     setRefreshing(false);
-  }, [loadChats]);
+  }, []);
 
   const createChat = useCallback(
-    async (otherUserId: string): Promise<string> => {
+    async (otherUserId: string, otherUserName: string): Promise<string> => {
+      if (!currentUser || !currentUser.id) {
+        throw new Error('User not authenticated');
+      }
+
       try {
-        const chatId = await chatService.createChat(currentUser.id, {
-          type: ChatType.PRIVATE,
-          participantIds: [currentUser.id, otherUserId],
-        });
+        // Kiểm tra xem đã có chat với user này chưa
+        const existingChats = chats.filter(chat => chat.otherUserId === otherUserId);
+        if (existingChats.length > 0) {
+          // Trả về chat ID hiện có
+          return existingChats[0].id;
+        }
 
-        // Refresh chat list
-        await loadChats();
+        // Tạo chat mới với đầy đủ tham số theo chatService
+        const chatId = await chatService.createChat(
+          currentUser.id,
+          currentUser.fullName || currentUser.userName,
+          otherUserId,
+          otherUserName
+        );
 
+        // Chat list will auto-update via Firebase listener
         return chatId;
+
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to create chat";
@@ -396,11 +530,15 @@ export function useChatList({
         throw err;
       }
     },
-    [currentUser.id, loadChats]
+    [currentUser?.id, chats]
   );
 
   const searchUsers = useCallback(
     async (query: string) => {
+      if (!currentUser || !currentUser.id) {
+        return [];
+      }
+
       try {
         return await userFirebaseService.searchUsers(query, currentUser.id);
       } catch (err) {
@@ -408,7 +546,14 @@ export function useChatList({
         return [];
       }
     },
-    [currentUser.id]
+    [currentUser?.id]
+  );
+
+  const findExistingChat = useCallback(
+    (otherUserId: string): ChatListItem | undefined => {
+      return chats.find(chat => chat.otherUserId === otherUserId);
+    },
+    [chats]
   );
 
   return {
@@ -419,12 +564,17 @@ export function useChatList({
     refresh,
     createChat,
     searchUsers,
+    findExistingChat,
   };
 }
 
-// Hook for user presence
+// Hook for user presence 
 export function useUserPresence(currentUser: CurrentUser) {
   useEffect(() => {
+    if (!currentUser || !currentUser.id) {
+      return;
+    }
+
     // Set user online when app starts
     chatService
       .updateUserPresence(currentUser.id, UserStatus.ONLINE)
@@ -443,19 +593,18 @@ export function useUserPresence(currentUser: CurrentUser) {
       }
     };
 
-    // Add app state listener if available
-    // AppState.addEventListener('change', handleAppStateChange);
+    // Listen for app state changes
+    const { AppState } = require('react-native');
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
 
     return () => {
-      // Set offline on cleanup
-      chatService
-        .updateUserPresence(currentUser.id, UserStatus.OFFLINE)
-        .catch(console.error);
-
-      // Remove listener
-      // AppState.removeEventListener('change', handleAppStateChange);
+      // Cleanup khi component unmount
+      if (currentUser && currentUser.id) {
+        chatService.updateUserPresence(currentUser.id, UserStatus.OFFLINE);
+      }
+      subscription?.remove();
     };
-  }, [currentUser.id]);
+  }, [currentUser?.id]);
 }
 
 // Image picker utilities

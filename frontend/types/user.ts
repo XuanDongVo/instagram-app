@@ -42,7 +42,18 @@ export interface ResetPasswordProps {
 export interface AuthResponse {
   id : string;
   email: string;
-  name: string;
+  userName: string;
+  fullName: string;
   accessToken: string;
+}
+
+// Alias for CurrentUser to be used in components
+export interface CurrentUser {
+  id: string;
+  userName: string;
+  fullName: string;
+  email: string;
+  accessToken: string;
+  avatar?: string;
 }
 
