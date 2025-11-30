@@ -39,7 +39,7 @@ public class UserMapper {
 	}
 
 	public AuthResponse toAuthResponse(User user, String accessToken) {
-		return AuthResponse.builder().id(user.getId()).name(user.getFullName())
+		return AuthResponse.builder().id(user.getId()).userName(user.getUserName()).fullName(user.getFullName())
 				.email(user.getEmail()).accessToken(accessToken).build();
 	}
 

@@ -1,14 +1,46 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, {
-  AxiosInstance,
   AxiosError,
-  AxiosResponse,
+  AxiosInstance,
   AxiosRequestConfig,
   AxiosRequestHeaders,
+  AxiosResponse,
 } from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-const BASE_URL = "http://10.0.2.2:8080/api";
+
+const LAPTOP_IP = "192.168.1.2";
+
+
+const getBaseUrl = () => {
+  if (Platform.OS === "web") {
+    return "http://localhost:8080/api";
+  }
+
+  if (Platform.OS === "android" && !Constants.appOwnership) {
+    return "http://10.0.2.2:8080/api";
+  }
+
+  if (Platform.OS === "android") {
+    return `http://${LAPTOP_IP}:8080/api`;
+  }
+
+  if (Platform.OS === "ios" && !Constants.appOwnership) {
+    return "http://localhost:8080/api";
+  }
+
+  if (Platform.OS === "ios") {
+    return `http://${LAPTOP_IP}:8080/api`;
+  }
+
+  return `http://${LAPTOP_IP}:8080/api`;
+};
+
+const BASE_URL = getBaseUrl();
+console.log("🔍 BASE_URL đang dùng:", BASE_URL);
+
+
 export const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,
@@ -47,7 +79,7 @@ export const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem("accessToken");
-    
+
     if (
       // !config.url?.includes("/auth/register") &&
       // !config.url?.includes("/auth/login") &&

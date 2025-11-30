@@ -74,7 +74,7 @@ public class UserService {
     }
 
     @Transactional
-    public void createUser(RegisterRequest registerRequest) {
+    public AuthResponse createUser(RegisterRequest registerRequest) {
         User user = new User();
         user.setEmail(registerRequest.getEmail());
         user.setUserName(registerRequest.getUserName());
@@ -82,6 +82,7 @@ public class UserService {
         String hashPassword = passwordEncoder.encode(registerRequest.getPassword());
         user.setPassword(hashPassword);
         userRepository.save(user);
+        return mapper.toAuthResponse(user, "");
     }
 
     @Transactional

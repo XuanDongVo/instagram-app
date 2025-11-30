@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { router } from "expo-router";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  Dimensions,
-  ScrollView,
-} from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import FollowerListModal from "../../components/profile/FollowerListModal";
+import { userFirebaseService } from "@/services/userFirebaseService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  Dimensions,
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import FollowerListModal from "../../components/profile/FollowerListModal";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -68,9 +69,22 @@ export default function Profile() {
   if (!user) return null;
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("accessToken");
-    await AsyncStorage.removeItem("refreshToken");
-    router.replace("/login");
+    try {
+      const currentUserString = await AsyncStorage.getItem('currentUser');
+      if (currentUserString) {
+        const currentUser = JSON.parse(currentUserString);
+        await userFirebaseService.setUserOffline(currentUser.id);
+      }
+      
+      await AsyncStorage.removeItem("accessToken");
+      await AsyncStorage.removeItem("refreshToken");
+      await AsyncStorage.removeItem("currentUser");
+      
+      router.replace("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      router.replace("/login");
+    }
   };
 
 

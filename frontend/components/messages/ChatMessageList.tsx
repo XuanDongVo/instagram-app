@@ -1,4 +1,4 @@
-import { ChatMessageListProps, MessageData } from '@/types';
+import { ChatMessageListProps, ExtendedMessageData } from '@/types';
 import { useEffect, useRef } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 import ChatMessage from './ChatMessage';
@@ -19,7 +19,7 @@ const ChatMessageList = ({
         }
     }, [messages.length]);
 
-    const renderMessage = ({ item }: { item: MessageData }) => (
+    const renderMessage = ({ item }: { item: ExtendedMessageData }) => (
         <ChatMessage message={item} onLongPress={onMessageLongPress} />
     );
 
