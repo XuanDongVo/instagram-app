@@ -5,18 +5,12 @@ import MessageActionModal from '@/components/messages/MessageActionModal';
 import { useChat, useImagePicker } from '@/hooks/useChat';
 import { userFirebaseService } from '@/services/userFirebaseService';
 import { ExtendedMessageData } from '@/types';
+import { CurrentUser } from '@/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface CurrentUser {
-    id: string;
-    name: string;
-    avatar?: string;
-    email: string;
-}
 
 interface OtherUser {
     id: string;
@@ -239,7 +233,7 @@ export default function ChatDetail() {
 
     // Show loading or error states
     if (!currentUser || !otherUser) {
-        return null; // Or loading spinner
+        return null; 
     }
 
     return (

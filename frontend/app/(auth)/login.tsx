@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Pressable, StyleSheet, Alert } from "react-native";
-import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { authService } from "../../services/authService"; 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
+import { useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { authService } from "../../services/authService";
+import { userFirebaseService } from "../../services/userFirebaseService";
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState(""); 
-  const [password, setPassword] = useState(""); 
-  const [loading, setLoading] = useState(false); 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (loading) return;
@@ -17,9 +18,19 @@ export default function LoginScreen() {
 
     try {
       const response = await authService.login({ email, password });
-      
+
       // Lưu token
       await AsyncStorage.setItem("accessToken", response.accessToken);
+      // Tạo/cập nhật user trong Firebase cho chat
+      await userFirebaseService.ensureUserExistsInFirebase(response);
+      const currentUser = {
+        id: response.id,
+        userName: response.userName,
+        fullName: response.fullName,
+        email: response.email,
+        accessToken: response.accessToken
+      };
+      await AsyncStorage.setItem('currentUser', JSON.stringify(currentUser));
 
       // Chuyển hướng đến trang chủ
       router.replace("/");
@@ -43,8 +54,8 @@ export default function LoginScreen() {
         placeholder="Email hoặc số điện thoại"
         placeholderTextColor="#999"
         style={styles.input}
-        value={email} 
-        onChangeText={setEmail} 
+        value={email}
+        onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
       />
@@ -56,8 +67,8 @@ export default function LoginScreen() {
           placeholderTextColor="#999"
           secureTextEntry={!showPassword}
           style={styles.passwordInput}
-          value={password} 
-          onChangeText={setPassword} 
+          value={password}
+          onChangeText={setPassword}
           autoCapitalize="none"
         />
         <Pressable onPress={() => setShowPassword(!showPassword)}>
@@ -84,7 +95,7 @@ export default function LoginScreen() {
       <TouchableOpacity
         style={styles.forgotContainer}
         onPress={() => router.push("/forgot-password")}
-       >
+      >
         <Text style={styles.forgotText}>Quên mật khẩu?</Text>
       </TouchableOpacity>
 

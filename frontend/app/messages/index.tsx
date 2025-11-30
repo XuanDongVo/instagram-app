@@ -2,17 +2,12 @@ import MessageHeader from '@/components/messages/MessageHeader';
 import MessageList from '@/components/messages/MessageList';
 import SearchBar from '@/components/messages/SearchBar';
 import { useChatList, useUserPresence } from '@/hooks/useChat';
+import { CurrentUser } from '@/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, SafeAreaView, StyleSheet } from 'react-native';
-
-interface CurrentUser {
-    id: string;
-    name: string;
-    avatar?: string;
-    email: string;
-}
+import { Alert, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function MessagesIndex() {
     const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -31,7 +26,6 @@ export default function MessagesIndex() {
                 const userData = JSON.parse(userDataString);
                 setCurrentUser(userData);
             } else {
-                // Redirect to login if no user found
                 router.replace('/login');
             }
         } catch (error) {
@@ -40,7 +34,6 @@ export default function MessagesIndex() {
         }
     };
 
-    // Use chat hooks
     const {
         chats,
         loading,
@@ -48,14 +41,15 @@ export default function MessagesIndex() {
         refreshing,
         refresh,
         createChat,
-        searchUsers
-    } = useChatList({ currentUser: currentUser! });
+        searchUsers,
+        findExistingChat
+    } = useChatList({ currentUser: currentUser || { id: '', userName: '', fullName: '', email: '', accessToken: '' } });
 
-    // Set up user presence
-    useUserPresence(currentUser!);
+    // Set up user presence only when currentUser is available
+    useUserPresence(currentUser || { id: '', userName: '', fullName: '', email: '', accessToken: '' });
 
     const handleSearch = useCallback(async (searchText: string) => {
-        if (!currentUser) return;
+        if (!currentUser || !currentUser.id) return;
 
         if (searchText.trim() === '') {
             setSearchResults([]);
@@ -89,7 +83,6 @@ export default function MessagesIndex() {
                 {
                     text: 'Search Users',
                     onPress: () => {
-                        // Focus search bar or show user search modal
                         console.log('Open user search');
                     }
                 }
@@ -102,19 +95,31 @@ export default function MessagesIndex() {
     }, []);
 
     const handleUserPress = useCallback(async (user: any) => {
-        if (!currentUser) return;
+        if (!currentUser || !currentUser.id) return;
 
         try {
-            const chatId = await createChat(user.id);
-            router.push(`/messages/${chatId}?otherUserId=${user.id}`);
+            const existingChat = findExistingChat(user.id);
+
+            if (existingChat) {
+                router.push(`/messages/${existingChat.id}?otherUserId=${user.id}`);
+            } else {
+                const chatId = await createChat(user.id, user.userName || user.name);
+                router.push(`/messages/${chatId}?otherUserId=${user.id}`);
+            }
         } catch (err) {
-            Alert.alert('Error', 'Failed to create chat');
+            console.error('Error handling user press:', err);
+            Alert.alert('Error', 'Failed to open chat');
         }
-    }, [currentUser, createChat]);
+    }, [currentUser, createChat, findExistingChat, router]);
 
     // Show loading or error states
-    if (!currentUser) {
-        return null; // Or loading spinner
+    if (!currentUser || !currentUser.id) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.loadingContainer}>
+                </View>
+            </SafeAreaView>
+        );
     }
 
     if (error) {
@@ -124,7 +129,7 @@ export default function MessagesIndex() {
     return (
         <SafeAreaView style={styles.container}>
             <MessageHeader
-                username={currentUser.name}
+                username={currentUser.fullName || currentUser.userName}
                 onVideoCall={handleVideoCall}
                 onNewMessage={handleNewMessage}
             />
@@ -145,9 +150,12 @@ export default function MessagesIndex() {
                 onRefresh={handleRefresh}
                 refreshing={refreshing}
                 onItemPress={isSearching ? handleUserPress : (item) => {
-                    // Extract other user ID from chat participants
-                    const otherUserId = 'other_user_id'; // TODO: Get from chat data
-                    handleChatPress(item.id, otherUserId);
+                    const chatData = chats.find(chat => chat.id === item.id);
+                    if (chatData && chatData.otherUserId) {
+                        handleChatPress(item.id, chatData.otherUserId);
+                    } else {
+                        Alert.alert('Error', 'Cannot open chat - missing user information');
+                    }
                 }}
             />
         </SafeAreaView>
@@ -158,5 +166,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
