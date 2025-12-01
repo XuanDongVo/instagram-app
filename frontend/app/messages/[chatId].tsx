@@ -8,7 +8,7 @@ import { ExtendedMessageData } from '@/types';
 import { CurrentUser } from '@/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -27,6 +27,9 @@ export default function ChatDetail() {
     const [showActionModal, setShowActionModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingText, setEditingText] = useState('');
+    
+    // UseRef để store message đang edit (backup cho trường hợp state bị reset)
+    const editingMessageRef = useRef<ExtendedMessageData | null>(null);
 
     useEffect(() => {
         loadCurrentUser();
@@ -114,30 +117,25 @@ export default function ChatDetail() {
         try {
             await sendMessage(messageText);
         } catch (err) {
-            console.error('Error sending message:', err);
             Alert.alert('Lỗi', 'Không thể gửi tin nhắn');
         }
     }, [currentUser, sendMessage]);
 
     const handleRefresh = useCallback(() => {
-        console.log('Refreshing messages...');
     }, []);
 
     const handleVideoCall = useCallback(() => {
         if (!otherUser) return;
-        console.log('Starting video call with', otherUser.name);
         Alert.alert('Video Call', `Calling ${otherUser.name}...`);
     }, [otherUser]);
 
     const handleVoiceCall = useCallback(() => {
         if (!otherUser) return;
-        console.log('Starting voice call with', otherUser.name);
         Alert.alert('Voice Call', `Calling ${otherUser.name}...`);
     }, [otherUser]);
 
     const handleInfo = useCallback(() => {
         if (!otherUser) return;
-        console.log('Opening user info for', otherUser.name);
         Alert.alert('User Info', `Information for ${otherUser.name}`);
     }, [otherUser]);
 
@@ -148,7 +146,6 @@ export default function ChatDetail() {
                 await sendImage(imageUri);
             }
         } catch (err) {
-            console.error('Error picking image:', err);
             Alert.alert('Lỗi', 'Không thể gửi ảnh');
         }
     }, [pickImage, sendImage]);
@@ -160,7 +157,6 @@ export default function ChatDetail() {
                 await sendImage(imageUri);
             }
         } catch (err) {
-            console.error('Error taking photo:', err);
             Alert.alert('Lỗi', 'Không thể chụp ảnh');
         }
     }, [takePhoto, sendImage]);
@@ -172,33 +168,37 @@ export default function ChatDetail() {
 
     const handleCloseModal = useCallback(() => {
         setShowActionModal(false);
-        if (!showEditModal) {
-            setSelectedMessage(null);
-        }
-    }, [showEditModal]);
+        setSelectedMessage(null);
+    }, []);
 
-    const handleEditMessage = useCallback(async (message: ExtendedMessageData) => {
-        console.log('Starting edit for message:', message.id, message.text);
-        setEditingText(message.text);
-        setShowEditModal(true);
+    const handleCloseActionModalOnly = useCallback(() => {
         setShowActionModal(false);
     }, []);
 
-    const handleConfirmEdit = useCallback(async () => {
-        console.log('Confirming edit for message:', selectedMessage);
-        if (!selectedMessage) return;
+    const handleEditMessage = useCallback(async (message: ExtendedMessageData) => {
+        setEditingText(message.text);
+        setSelectedMessage(message);
+        editingMessageRef.current = message;
         
-        console.log('New text entered:', editingText);
+        setShowEditModal(true);
+        handleCloseActionModalOnly();
+    }, [handleCloseActionModalOnly, selectedMessage]);
+
+    const handleConfirmEdit = useCallback(async () => {
+        const messageToEdit = selectedMessage || editingMessageRef.current;
+        
+        if (!messageToEdit) {
+            return;
+        }
+        
         if (editingText && editingText.trim()) {
             try {
-                console.log('Calling editMessage with:', selectedMessage.id, editingText.trim());
-                await editMessage(selectedMessage.id, editingText.trim());
-                console.log('Edit successful');
+                await editMessage(messageToEdit.id, editingText.trim());
                 setShowEditModal(false);
                 setSelectedMessage(null);
+                editingMessageRef.current = null;
                 setEditingText('');
             } catch (error) {
-                console.error('Edit failed:', error);
                 Alert.alert('Lỗi', 'Không thể chỉnh sửa tin nhắn');
             }
         }

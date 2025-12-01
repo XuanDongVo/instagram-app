@@ -269,13 +269,10 @@ class ChatService {
    * Cập nhật tin nhắn (edit)
    */
   async updateMessage(messageId: string, newContent: string): Promise<void> {
-    console.log('chatService.updateMessage called with:', messageId, newContent);
     const messageRef = doc(this.db, "messages", messageId);
-    console.log('Getting message snapshot...');
     const messageSnap = await getDoc(messageRef);
 
     if (messageSnap.exists()) {
-      console.log('Message found, updating...');
       const originalContent = messageSnap.data().content;
       await updateDoc(messageRef, {
         content: newContent,
@@ -283,9 +280,7 @@ class ChatService {
         originalContent: originalContent,
         updatedAt: serverTimestamp(),
       });
-      console.log('Message updated successfully');
     } else {
-      console.error('Message not found with ID:', messageId);
       throw new Error('Message not found');
     }
   }
@@ -328,7 +323,7 @@ class ChatService {
       
       // Chỉ đánh dấu đọc tin nhắn từ người khác (không phải tin nhắn của mình)
       if (message.senderId === currentUserId) {
-        return; // Không làm gì với tin nhắn của chính mình
+        return; 
       }
       
       const readBy = message.readBy || [];
@@ -378,7 +373,6 @@ class ChatService {
   ): Promise<void> {
     const typingRef = doc(this.db, "typing", `${chatId}_${userId}`);
     if (isTyping) {
-      // Sử dụng setDoc để tạo document nếu chưa có
       await setDoc(typingRef, {
         chatId,
         userId: userId,
@@ -387,11 +381,9 @@ class ChatService {
         timestamp: serverTimestamp(),
       });
     } else {
-      // Xóa document typing khi user ngừng gõ
       try {
         await deleteDoc(typingRef);
       } catch (error) {
-        // Document có thể không tồn tại, ignore error
         console.log('Typing document not found (normal):', error);
       }
     }

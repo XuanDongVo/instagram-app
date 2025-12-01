@@ -258,14 +258,10 @@ export function useChat({
   // Edit message
   const editMessage = useCallback(
     async (messageId: string, newText: string) => {
-      console.log('useChat editMessage called with:', messageId, newText);
       try {
         setError(null);
-        console.log('Calling chatService.updateMessage...');
         await chatService.updateMessage(messageId, newText);
-        console.log('chatService.updateMessage completed successfully');
       } catch (err) {
-        console.error('Error in chatService.updateMessage:', err);
         const errorMessage =
           err instanceof Error ? err.message : "Failed to edit message";
         setError(errorMessage);
