@@ -64,6 +64,8 @@ export interface FirebaseMessage {
   readBy?: MessageReadStatus[];
   isDeleted: boolean;
   deletedAt?: Timestamp;
+  isRecalled: boolean;
+  recalledAt?: Timestamp;
 }
 
 // Interface cho reaction tin nhắn

@@ -26,6 +26,7 @@ export interface ExtendedMessageData
   replyToMessageId?: string;
   reactions?: { userId: string; emoji: string }[];
   attachments?: { url: string; type: string; fileName?: string }[];
+  isRecalled?: boolean;
 }
 
 export interface UserData {

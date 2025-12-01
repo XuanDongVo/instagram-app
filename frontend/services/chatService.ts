@@ -185,6 +185,7 @@ class ChatService {
       status: MessageStatus.SENDING,
       createdAt: serverTimestamp() as Timestamp,
       isEdited: false,
+      isRecalled: false, // Mặc định không bị thu hồi
       ...(request.replyToMessageId && { replyToMessageId: request.replyToMessageId }),
       reactions: [], // Empty array - không có serverTimestamp
       readBy: [],    // Empty array - không có serverTimestamp
@@ -220,10 +221,11 @@ class ChatService {
   }
 
   /**
-   * Lấy tin nhắn của chat với pagination 
+   * Lấy tin nhắn của chat 
    */
   getChatMessages(
     pagination: MessagePagination,
+    currentUserId: string,
     callback: (messages: (FirebaseMessage & { id: string })[]) => void
   ) {
     let q = query(
@@ -239,9 +241,18 @@ class ChatService {
           id: string;
         };
         
-        if (!messageData.isDeleted) {
-          messages.push(messageData);
+        // Bỏ qua các tin nhắn đã bị xóa
+        if (messageData.isDeleted) {
+          return;
         }
+
+        // Xử lý recall logic
+        if (messageData.isRecalled && messageData.senderId === currentUserId) {
+          // Người gửi thấy tin nhắn đã thu hồi (ẩn hoàn toàn)
+          return; // Bỏ qua tin nhắn này
+        }
+        
+        messages.push(messageData);
       });
       
       messages.sort((a, b) => {
@@ -258,10 +269,13 @@ class ChatService {
    * Cập nhật tin nhắn (edit)
    */
   async updateMessage(messageId: string, newContent: string): Promise<void> {
+    console.log('chatService.updateMessage called with:', messageId, newContent);
     const messageRef = doc(this.db, "messages", messageId);
+    console.log('Getting message snapshot...');
     const messageSnap = await getDoc(messageRef);
 
     if (messageSnap.exists()) {
+      console.log('Message found, updating...');
       const originalContent = messageSnap.data().content;
       await updateDoc(messageRef, {
         content: newContent,
@@ -269,6 +283,10 @@ class ChatService {
         originalContent: originalContent,
         updatedAt: serverTimestamp(),
       });
+      console.log('Message updated successfully');
+    } else {
+      console.error('Message not found with ID:', messageId);
+      throw new Error('Message not found');
     }
   }
 
@@ -280,7 +298,18 @@ class ChatService {
     await updateDoc(messageRef, {
       isDeleted: true,
       deletedAt: serverTimestamp(),
-      content: "Tin nhắn đã được thu hồi",
+      content: "Tin nhắn đã được xóa ",
+    });
+  }
+
+  /**
+   * Thu hồi tin nhắn (người gửi sẽ thấy "Tin nhắn đã được thu hồi", người nhận vẫn thấy nội dung gốc)
+   */
+  async recallMessage(messageId: string): Promise<void> {
+    const messageRef = doc(this.db, "messages", messageId);
+    await updateDoc(messageRef, {
+      isRecalled: true,
+      recalledAt: serverTimestamp(),
     });
   }
 
@@ -296,6 +325,12 @@ class ChatService {
 
     if (messageSnap.exists()) {
       const message = messageSnap.data() as FirebaseMessage;
+      
+      // Chỉ đánh dấu đọc tin nhắn từ người khác (không phải tin nhắn của mình)
+      if (message.senderId === currentUserId) {
+        return; // Không làm gì với tin nhắn của chính mình
+      }
+      
       const readBy = message.readBy || [];
 
       // Kiểm tra xem user đã đọc chưa

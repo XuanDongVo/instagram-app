@@ -3,7 +3,12 @@ import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const ChatMessage = ({ message, onLongPress }: ChatMessageProps) => {
-    const { text, timestamp, isMe, avatar, type = 'text', imageUrl, status, isEdited } = message;
+    const { text, timestamp, isMe, avatar, type = 'text', imageUrl, status, isEdited, isRecalled } = message;
+
+    // Không hiển thị tin nhắn đã thu hồi
+    if (isRecalled) {
+        return null;
+    }
 
     const handleLongPress = () => {
         if (isMe && onLongPress) {
@@ -36,8 +41,11 @@ const ChatMessage = ({ message, onLongPress }: ChatMessageProps) => {
         <View style={[styles.container, isMe ? styles.myMessage : styles.theirMessage]}>
             {!isMe && (
                 <Image
-                    source={{ uri: avatar || 'https://via.placeholder.com/30' }}
+                    source={{ 
+                        uri: avatar || 'https://via.placeholder.com/30x30/CCCCCC/FFFFFF?text=U' 
+                    }}
                     style={styles.avatar}
+                    onError={() => console.warn('Avatar load failed:', avatar)}
                 />
             )}
 

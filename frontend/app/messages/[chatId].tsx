@@ -9,7 +9,7 @@ import { CurrentUser } from '@/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface OtherUser {
@@ -25,6 +25,8 @@ export default function ChatDetail() {
     const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
     const [selectedMessage, setSelectedMessage] = useState<ExtendedMessageData | null>(null);
     const [showActionModal, setShowActionModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingText, setEditingText] = useState('');
 
     useEffect(() => {
         loadCurrentUser();
@@ -41,6 +43,17 @@ export default function ChatDetail() {
             const userDataString = await AsyncStorage.getItem('currentUser');
             if (userDataString) {
                 const userData = JSON.parse(userDataString);
+                
+                try {
+                    const firebaseUserData = await userFirebaseService.getUserFromFirebase(userData.id);
+                    if (firebaseUserData) {
+                        const user = firebaseUserData as any; 
+                        userData.avatar = user.profileImage;
+                    }
+                } catch (firebaseError) {
+                    console.warn('Could not load avatar from Firebase:', firebaseError);
+                }
+                
                 setCurrentUser(userData);
             } else {
                 router.replace('/login');
@@ -159,33 +172,43 @@ export default function ChatDetail() {
 
     const handleCloseModal = useCallback(() => {
         setShowActionModal(false);
-        setSelectedMessage(null);
-    }, []);
+        if (!showEditModal) {
+            setSelectedMessage(null);
+        }
+    }, [showEditModal]);
 
     const handleEditMessage = useCallback(async (message: ExtendedMessageData) => {
-        Alert.prompt(
-            'Chỉnh sửa tin nhắn',
-            'Nhập nội dung mới:',
-            [
-                { text: 'Hủy', style: 'cancel' },
-                {
-                    text: 'Xác nhận',
-                    onPress: async (newText: string | undefined) => {
-                        if (newText && newText.trim()) {
-                            try {
-                                await editMessage(message.id, newText.trim());
-                                setShowActionModal(false);
-                            } catch {
-                                Alert.alert('Lỗi', 'Không thể chỉnh sửa tin nhắn');
-                            }
-                        }
-                    }
-                }
-            ],
-            'plain-text',
-            message.text
-        );
-    }, [editMessage]);
+        console.log('Starting edit for message:', message.id, message.text);
+        setEditingText(message.text);
+        setShowEditModal(true);
+        setShowActionModal(false);
+    }, []);
+
+    const handleConfirmEdit = useCallback(async () => {
+        console.log('Confirming edit for message:', selectedMessage);
+        if (!selectedMessage) return;
+        
+        console.log('New text entered:', editingText);
+        if (editingText && editingText.trim()) {
+            try {
+                console.log('Calling editMessage with:', selectedMessage.id, editingText.trim());
+                await editMessage(selectedMessage.id, editingText.trim());
+                console.log('Edit successful');
+                setShowEditModal(false);
+                setSelectedMessage(null);
+                setEditingText('');
+            } catch (error) {
+                console.error('Edit failed:', error);
+                Alert.alert('Lỗi', 'Không thể chỉnh sửa tin nhắn');
+            }
+        }
+    }, [selectedMessage, editingText, editMessage]);
+
+    const handleCancelEdit = useCallback(() => {
+        setShowEditModal(false);
+        setSelectedMessage(null);
+        setEditingText('');
+    }, []);
 
     const handleRecallMessage = useCallback(async (message: ExtendedMessageData) => {
         Alert.alert(
@@ -275,6 +298,42 @@ export default function ChatDetail() {
                 onRecall={handleRecallMessage}
                 onDelete={handleDeleteMessage}
             />
+
+            {/* Edit Modal */}
+            <Modal
+                visible={showEditModal}
+                transparent
+                animationType="fade"
+                onRequestClose={handleCancelEdit}
+            >
+                <View style={styles.editModalOverlay}>
+                    <View style={styles.editModalContent}>
+                        <Text style={styles.editModalTitle}>Chỉnh sửa tin nhắn</Text>
+                        <TextInput
+                            style={styles.editModalInput}
+                            value={editingText}
+                            onChangeText={setEditingText}
+                            multiline
+                            placeholder="Nhập nội dung mới..."
+                            autoFocus
+                        />
+                        <View style={styles.editModalButtons}>
+                            <TouchableOpacity 
+                                style={[styles.editModalButton, styles.cancelButton]} 
+                                onPress={handleCancelEdit}
+                            >
+                                <Text style={styles.cancelButtonText}>Hủy</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.editModalButton, styles.confirmButton]} 
+                                onPress={handleConfirmEdit}
+                            >
+                                <Text style={styles.confirmButtonText}>Xác nhận</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -286,5 +345,72 @@ const styles = StyleSheet.create({
     },
     keyboardView: {
         flex: 1,
+    },
+    editModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    editModalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 20,
+        width: '100%',
+        maxWidth: 400,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    editModalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 20,
+        color: '#333',
+    },
+    editModalInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 12,
+        padding: 15,
+        fontSize: 16,
+        minHeight: 80,
+        textAlignVertical: 'top',
+        marginBottom: 20,
+    },
+    editModalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    editModalButton: {
+        flex: 1,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: '#f0f0f0',
+    },
+    confirmButton: {
+        backgroundColor: '#3797f0',
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#666',
+    },
+    confirmButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#fff',
     },
 });
