@@ -92,7 +92,9 @@ export function useChat({
         replyToMessageId: fbMessage.replyToMessageId,
         reactions: fbMessage.reactions?.map((r) => ({
           userId: r.userId,
+          userName: r.userName,
           emoji: r.emoji,
+          createdAt: safeToDate(r.createdAt),
         })),
         attachments: fbMessage.attachments?.map((a) => ({
           url: a.url,
@@ -123,7 +125,7 @@ export function useChat({
             convertFirebaseMessage
           );
 
-          // Sort messages by timestamp (cũ đến mới để hiển thị đúng trong chat)
+          // Sort messages by timestamp 
           convertedMessages.sort((a, b) => {
             const aTime = a.createdAt?.getTime() || 0;
             const bTime = b.createdAt?.getTime() || 0;
@@ -297,6 +299,79 @@ export function useChat({
     }
   }, []);
 
+  // Add reaction to message
+  const addReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!currentUser?.id) {
+        console.error("Cannot add reaction: user not authenticated");
+        return;
+      }
+
+      try {
+        setError(null);
+        await chatService.addReactionToMessage(
+          messageId,
+          currentUser.id,
+          currentUser.fullName || currentUser.userName,
+          emoji
+        );
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to add reaction";
+        setError(errorMessage);
+        throw err;
+      }
+    },
+    [currentUser]
+  );
+
+  // Remove reaction from message
+  const removeReaction = useCallback(
+    async (messageId: string) => {
+      if (!currentUser?.id) {
+        console.error("Cannot remove reaction: user not authenticated");
+        return;
+      }
+
+      try {
+        setError(null);
+        await chatService.removeReactionFromMessage(messageId, currentUser.id);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to remove reaction";
+        setError(errorMessage);
+        throw err;
+      }
+    },
+    [currentUser]
+  );
+
+  // Change reaction
+  const changeReaction = useCallback(
+    async (messageId: string, newEmoji: string) => {
+      if (!currentUser?.id) {
+        console.error("Cannot change reaction: user not authenticated");
+        return;
+      }
+
+      try {
+        setError(null);
+        await chatService.changeReaction(
+          messageId,
+          currentUser.id,
+          currentUser.fullName || currentUser.userName,
+          newEmoji
+        );
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to change reaction";
+        setError(errorMessage);
+        throw err;
+      }
+    },
+    [currentUser]
+  );
+
   // Mark messages as read
   const markAsRead = useCallback(async () => {
     if (!currentUser?.id) {
@@ -372,6 +447,9 @@ export function useChat({
     editMessage,
     deleteMessage,
     recallMessage,
+    addReaction,
+    removeReaction,
+    changeReaction,
     markAsRead,
     isTyping,
     setIsTyping: handleTyping,
