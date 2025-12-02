@@ -12,7 +12,7 @@ import {
   setDoc,
   Timestamp,
   updateDoc,
-  where
+  where,
 } from "firebase/firestore";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { getFirebaseApp } from "../firebaseConfig";
@@ -26,7 +26,7 @@ import {
   MessageStatus,
   SendMessageRequest,
   TypingIndicator,
-  UserStatus
+  UserStatus,
 } from "../types/chat";
 
 class ChatService {
@@ -61,7 +61,7 @@ class ChatService {
 
     // Tạo timestamp một lần để tái sử dụng
     const now = Timestamp.fromDate(new Date());
-    
+
     const chatData: Omit<FirebaseChat, "id"> = {
       type: ChatType.PRIVATE,
       participants: [
@@ -73,18 +73,18 @@ class ChatService {
         },
         {
           userId: otherUserId,
-          userName: otherUserName || "Unknown User", 
+          userName: otherUserName || "Unknown User",
           joinedAt: now, // Sử dụng timestamp đã tạo sẵn
           isActive: true,
-        }
+        },
       ],
       createdBy: currentUserId,
-      createdAt: serverTimestamp() as Timestamp, 
+      createdAt: serverTimestamp() as Timestamp,
       updatedAt: serverTimestamp() as Timestamp,
       isActive: true,
       settings: {
         muteNotifications: false,
-        maxFileSize: 10, 
+        maxFileSize: 10,
         allowedFileTypes: [
           "image/jpeg",
           "image/png",
@@ -102,41 +102,39 @@ class ChatService {
    * Lấy danh sách chat của user (sử dụng callback thay vì return onSnapshot)
    */
   getUserChats(
-    userId: string, 
+    userId: string,
     callback: (chats: (FirebaseChat & { id: string })[]) => void,
     pagination?: ChatPagination
   ) {
-    // Query tất cả chat trước, rồi filter client-side
-    // Vì Firebase không hỗ trợ array-contains với nested objects
-    let q = query(
-      collection(this.db, "chats"),
-      limit(pagination?.limit || 20)
-    );
+    let q = query(collection(this.db, "chats"), limit(pagination?.limit || 20));
 
     return onSnapshot(q, (snapshot) => {
       const chats: (FirebaseChat & { id: string })[] = [];
       snapshot.forEach((docSnap) => {
-        const chatData = { id: docSnap.id, ...docSnap.data() } as FirebaseChat & {
+        const chatData = {
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as FirebaseChat & {
           id: string;
         };
-        
+
         // Filter client-side để check user có trong participants không
         const isUserInChat = chatData.participants?.some(
-          participant => participant.userId === userId
+          (participant) => participant.userId === userId
         );
-        
+
         if (isUserInChat) {
           chats.push(chatData);
         }
       });
-      
+
       // Sort by updatedAt ở client-side
       chats.sort((a, b) => {
         const aTime = a.updatedAt?.toDate?.() || new Date(0);
         const bTime = b.updatedAt?.toDate?.() || new Date(0);
         return bTime.getTime() - aTime.getTime(); // Newest first
       });
-      
+
       // Call callback với kết quả
       callback(chats);
     });
@@ -172,22 +170,26 @@ class ChatService {
       chatId: request.chatId,
       senderId: currentUserId,
       senderName: currentUserName,
-      ...(currentUserAvatar && { senderAvatar: currentUserAvatar }), 
+      ...(currentUserAvatar && { senderAvatar: currentUserAvatar }),
       type: request.type,
       content: request.content,
-      ...(request.attachments && request.attachments.length > 0 && { 
-        attachments: request.attachments.map((att) => ({
-          id: "", // Sẽ được generate
-          url: "", // Sẽ được upload
-          ...att,
-        }))
-      }),
+      ...(request.attachments &&
+        request.attachments.length > 0 && {
+          attachments: request.attachments.map((att) => ({
+            id: "", // Sẽ được generate
+            url: "", // Sẽ được upload
+            ...att,
+          })),
+        }),
       status: MessageStatus.SENDING,
       createdAt: serverTimestamp() as Timestamp,
       isEdited: false,
-      ...(request.replyToMessageId && { replyToMessageId: request.replyToMessageId }),
-      reactions: [], // Empty array - không có serverTimestamp
-      readBy: [],    // Empty array - không có serverTimestamp
+      isRecalled: false,
+      ...(request.replyToMessageId && {
+        replyToMessageId: request.replyToMessageId,
+      }),
+      reactions: [], 
+      readBy: [], 
       isDeleted: false,
     };
 
@@ -213,17 +215,18 @@ class ChatService {
       senderId: currentUserId,
       senderName: currentUserName,
       type: request.type,
-      timestamp: Timestamp.fromDate(new Date()), 
+      timestamp: Timestamp.fromDate(new Date()),
     });
 
     return docRef.id;
   }
 
   /**
-   * Lấy tin nhắn của chat với pagination 
+   * Lấy tin nhắn của chat
    */
   getChatMessages(
     pagination: MessagePagination,
+    currentUserId: string,
     callback: (messages: (FirebaseMessage & { id: string })[]) => void
   ) {
     let q = query(
@@ -235,21 +238,33 @@ class ChatService {
     return onSnapshot(q, (snapshot) => {
       const messages: (FirebaseMessage & { id: string })[] = [];
       snapshot.forEach((docSnap) => {
-        const messageData = { id: docSnap.id, ...docSnap.data() } as FirebaseMessage & {
+        const messageData = {
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as FirebaseMessage & {
           id: string;
         };
-        
-        if (!messageData.isDeleted) {
-          messages.push(messageData);
+
+        // Bỏ qua các tin nhắn đã bị xóa
+        if (messageData.isDeleted) {
+          return;
         }
+
+        // Xử lý recall logic
+        if (messageData.isRecalled && messageData.senderId === currentUserId) {
+          // Người gửi thấy tin nhắn đã thu hồi (ẩn hoàn toàn)
+          return;
+        }
+
+        messages.push(messageData);
       });
-      
+
       messages.sort((a, b) => {
         const aTime = a.createdAt?.toDate?.() || new Date(0);
         const bTime = b.createdAt?.toDate?.() || new Date(0);
         return aTime.getTime() - bTime.getTime();
       });
-      
+
       callback(messages);
     });
   }
@@ -269,6 +284,8 @@ class ChatService {
         originalContent: originalContent,
         updatedAt: serverTimestamp(),
       });
+    } else {
+      throw new Error("Message not found");
     }
   }
 
@@ -280,7 +297,18 @@ class ChatService {
     await updateDoc(messageRef, {
       isDeleted: true,
       deletedAt: serverTimestamp(),
-      content: "Tin nhắn đã được thu hồi",
+      content: "Tin nhắn đã được xóa ",
+    });
+  }
+
+  /**
+   * Thu hồi tin nhắn (người gửi sẽ thấy "Tin nhắn đã được thu hồi", người nhận vẫn thấy nội dung gốc)
+   */
+  async recallMessage(messageId: string): Promise<void> {
+    const messageRef = doc(this.db, "messages", messageId);
+    await updateDoc(messageRef, {
+      isRecalled: true,
+      recalledAt: serverTimestamp(),
     });
   }
 
@@ -296,6 +324,12 @@ class ChatService {
 
     if (messageSnap.exists()) {
       const message = messageSnap.data() as FirebaseMessage;
+
+      // Chỉ đánh dấu đọc tin nhắn từ người khác (không phải tin nhắn của mình)
+      if (message.senderId === currentUserId) {
+        return;
+      }
+
       const readBy = message.readBy || [];
 
       // Kiểm tra xem user đã đọc chưa
@@ -303,7 +337,7 @@ class ChatService {
       if (!alreadyRead) {
         readBy.push({
           userId: currentUserId,
-          readAt: Timestamp.fromDate(new Date()), 
+          readAt: Timestamp.fromDate(new Date()),
         });
 
         await updateDoc(messageRef, {
@@ -321,8 +355,8 @@ class ChatService {
    */
   async updateUserPresence(userId: string, status: UserStatus): Promise<void> {
     const userRef = doc(this.db, "users", userId);
-    
-    // Cập nhật trạng thái trong users collection 
+
+    // Cập nhật trạng thái trong users collection
     const updateData = {
       isOnline: status === UserStatus.ONLINE,
       lastSeen: serverTimestamp(),
@@ -343,7 +377,6 @@ class ChatService {
   ): Promise<void> {
     const typingRef = doc(this.db, "typing", `${chatId}_${userId}`);
     if (isTyping) {
-      // Sử dụng setDoc để tạo document nếu chưa có
       await setDoc(typingRef, {
         chatId,
         userId: userId,
@@ -352,12 +385,10 @@ class ChatService {
         timestamp: serverTimestamp(),
       });
     } else {
-      // Xóa document typing khi user ngừng gõ
       try {
         await deleteDoc(typingRef);
       } catch (error) {
-        // Document có thể không tồn tại, ignore error
-        console.log('Typing document not found (normal):', error);
+        console.log("Typing document not found (normal):", error);
       }
     }
   }
@@ -382,6 +413,157 @@ class ChatService {
       });
       callback(typingUsers);
     });
+  }
+
+  // ===== REACTION MANAGEMENT =====
+
+  /**
+   * Thêm reaction vào tin nhắn
+   */
+  async addReactionToMessage(
+    messageId: string,
+    userId: string,
+    userName: string,
+    emoji: string
+  ): Promise<void> {
+    const messageRef = doc(this.db, "messages", messageId);
+    const messageSnap = await getDoc(messageRef);
+
+    if (!messageSnap.exists()) {
+      throw new Error("Message not found");
+    }
+
+    const message = messageSnap.data() as FirebaseMessage;
+    const reactions = message.reactions || [];
+
+    // Kiểm tra xem user đã react với emoji này chưa
+    const existingReactionIndex = reactions.findIndex(
+      (reaction) => reaction.userId === userId && reaction.emoji === emoji
+    );
+
+    if (existingReactionIndex >= 0) {
+      return;
+    }
+
+    // Xóa reaction cũ của user (nếu có) và thêm reaction mới
+    const updatedReactions = reactions.filter(
+      (reaction) => reaction.userId !== userId
+    );
+
+    updatedReactions.push({
+      userId,
+      userName,
+      emoji,
+      createdAt: Timestamp.fromDate(new Date()),
+    });
+
+    await updateDoc(messageRef, {
+      reactions: updatedReactions,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  /**
+   * Xóa reaction khỏi tin nhắn
+   */
+  async removeReactionFromMessage(
+    messageId: string,
+    userId: string
+  ): Promise<void> {
+    const messageRef = doc(this.db, "messages", messageId);
+    const messageSnap = await getDoc(messageRef);
+
+    if (!messageSnap.exists()) {
+      throw new Error("Message not found");
+    }
+
+    const message = messageSnap.data() as FirebaseMessage;
+    const reactions = message.reactions || [];
+
+    // Lọc bỏ reaction của user
+    const updatedReactions = reactions.filter(
+      (reaction) => reaction.userId !== userId
+    );
+
+    await updateDoc(messageRef, {
+      reactions: updatedReactions,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  /**
+   * Đổi reaction của user (xóa reaction cũ và thêm reaction mới)
+   */
+  async changeReaction(
+    messageId: string,
+    userId: string,
+    userName: string,
+    newEmoji: string
+  ): Promise<void> {
+    const messageRef = doc(this.db, "messages", messageId);
+    const messageSnap = await getDoc(messageRef);
+
+    if (!messageSnap.exists()) {
+      throw new Error("Message not found");
+    }
+
+    const message = messageSnap.data() as FirebaseMessage;
+    const reactions = message.reactions || [];
+
+    // Xóa reaction cũ của user và thêm reaction mới
+    const updatedReactions = reactions.filter(
+      (reaction) => reaction.userId !== userId
+    );
+
+    updatedReactions.push({
+      userId,
+      userName,
+      emoji: newEmoji,
+      createdAt: Timestamp.fromDate(new Date()),
+    });
+
+    await updateDoc(messageRef, {
+      reactions: updatedReactions,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  /**
+   * Lấy danh sách người đã react với một tin nhắn
+   */
+  async getMessageReactions(messageId: string): Promise<Array<{
+    userId: string;
+    userName: string;
+    emoji: string;
+    createdAt: Timestamp;
+  }>> {
+    const messageRef = doc(this.db, "messages", messageId);
+    const messageSnap = await getDoc(messageRef);
+
+    if (!messageSnap.exists()) {
+      return [];
+    }
+
+    const message = messageSnap.data() as FirebaseMessage;
+    return message.reactions || [];
+  }
+
+  /**
+   * Kiểm tra user đã react với tin nhắn chưa
+   */
+  async getUserReactionForMessage(messageId: string, userId: string): Promise<string | null> {
+    const messageRef = doc(this.db, "messages", messageId);
+    const messageSnap = await getDoc(messageRef);
+
+    if (!messageSnap.exists()) {
+      return null;
+    }
+
+    const message = messageSnap.data() as FirebaseMessage;
+    const reactions = message.reactions || [];
+    
+    const userReaction = reactions.find(reaction => reaction.userId === userId);
+    return userReaction ? userReaction.emoji : null;
   }
 
   // ===== UTILITY METHODS =====
@@ -435,6 +617,8 @@ class ChatService {
       updatedAt: serverTimestamp(),
     });
   }
+
+
 }
 
 export const chatService = new ChatService();

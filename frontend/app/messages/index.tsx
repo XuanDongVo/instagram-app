@@ -24,6 +24,18 @@ export default function MessagesIndex() {
             const userDataString = await AsyncStorage.getItem('currentUser');
             if (userDataString) {
                 const userData = JSON.parse(userDataString);
+                
+                try {
+                    const { userFirebaseService } = await import('@/services/userFirebaseService');
+                    const firebaseUserData = await userFirebaseService.getUserFromFirebase(userData.id);
+                    if (firebaseUserData) {
+                        const user = firebaseUserData as any; // Type assertion for Firebase data
+                        userData.avatar = user.profileImage;
+                    }
+                } catch (firebaseError) {
+                    console.warn('Could not load avatar from Firebase:', firebaseError);
+                }
+                
                 setCurrentUser(userData);
             } else {
                 router.replace('/login');
