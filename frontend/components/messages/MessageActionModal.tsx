@@ -1,5 +1,7 @@
+import React from 'react';
 import { MessageActionModalProps, MessageActionType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import ReactionBar from './ReactionBar';
 import {
     Dimensions,
     Modal,
@@ -40,6 +42,10 @@ const MessageActionModal = ({
     onEdit,
     onRecall,
     onDelete,
+    onReactionPress,
+    onMoreReactions,
+    currentUserReaction,
+    isCurrentUserMessage = false,
 }: MessageActionModalProps) => {
     const handleAction = (actionId: string) => {
         if (!message) return;
@@ -58,6 +64,14 @@ const MessageActionModal = ({
         onClose();
     };
 
+    const handleReactionPress = (emoji: string) => {
+        onReactionPress?.(emoji);
+    };
+
+    const handleMorePress = () => {
+        onMoreReactions?.();
+    };
+
     if (!message) return null;
 
     return (
@@ -68,41 +82,38 @@ const MessageActionModal = ({
             onRequestClose={onClose}
         >
             <Pressable style={styles.overlay} onPress={onClose}>
-                <View style={styles.modalContainer}>
-                    <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-                        {/* Message Preview */}
-                        <View style={styles.messagePreview}>
-                            <View style={[styles.previewBubble, styles.myBubble]}>
-                                <Text style={styles.previewText} numberOfLines={2}>
-                                    {message.text}
-                                </Text>
-                                <Text style={styles.previewTimestamp}>{message.timestamp}</Text>
-                            </View>
-                        </View>
-
-                        {/* Action Buttons */}
-                        <View style={styles.actionsContainer}>
-                            {messageActions.map((action) => (
-                                <TouchableOpacity
-                                    key={action.id}
-                                    style={styles.actionButton}
-                                    onPress={() => handleAction(action.id)}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={[styles.actionIconContainer, { backgroundColor: action.color }]}>
-                                        <Ionicons name={action.icon as any} size={20} color="#fff" />
-                                    </View>
-                                    <Text style={styles.actionText}>{action.title}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        {/* Cancel Button */}
-                        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                            <Text style={styles.cancelText}>Hủy</Text>
-                        </TouchableOpacity>
-                    </Pressable>
+                {/* Reaction Bar */}
+                <View style={styles.reactionBarContainer}>
+                    <ReactionBar
+                        onReactionPress={handleReactionPress}
+                        onMorePress={handleMorePress}
+                        currentUserReaction={currentUserReaction}
+                    />
                 </View>
+
+                {/* Chỉ hiển thị action buttons nếu đó là tin nhắn của current user */}
+                {isCurrentUserMessage && (
+                    <View style={styles.modalContainer}>
+                        <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+                            {/* Action Buttons */}
+                            <View style={styles.actionsContainer}>
+                                {messageActions.map((action) => (
+                                    <TouchableOpacity
+                                        key={action.id}
+                                        style={styles.actionButton}
+                                        onPress={() => handleAction(action.id)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={[styles.actionIconContainer, { backgroundColor: action.color }]}>
+                                            <Ionicons name={action.icon as any} size={20} color="#fff" />
+                                        </View>
+                                        <Text style={styles.actionText}>{action.title}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </Pressable>
+                    </View>
+                )}
             </Pressable>
         </Modal>
     );
@@ -111,27 +122,41 @@ const MessageActionModal = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.1)', 
         justifyContent: 'center',
-        alignItems: 'center',
     },
+
     modalContainer: {
-        width: screenWidth - 40,
-        maxWidth: 320,
+        width: '20%',
+        position: 'absolute',
+        bottom: 180,
+        right: 50 % - (screenWidth * 0.2) / 2,
     },
+
     modalContent: {
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderRadius: 20,
         padding: 20,
         shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 10,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 25,
-        elevation: 25,
+        shadowOffset: { width: 0, height: -5 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 10,
     },
+
+    dragIndicator: {
+        width: 30,
+        height: 5,
+        backgroundColor: '#ccc',
+        borderRadius: 3,
+        alignSelf: 'center',
+    },
+
+    reactionBarContainer: {
+        marginBottom: 250,
+        alignItems: 'center',
+    },
+
     messagePreview: {
         alignItems: 'flex-end',
         marginBottom: 20,
@@ -158,26 +183,25 @@ const styles = StyleSheet.create({
         textAlign: 'right',
     },
     actionsContainer: {
-        flexDirection: 'row',
+        flexDirection: 'column',
         justifyContent: 'space-around',
-        marginBottom: 20,
     },
     actionButton: {
         alignItems: 'center',
         flex: 1,
-        paddingVertical: 10,
+        paddingVertical: 8,
     },
     actionIconContainer: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 8,
     },
     actionText: {
         fontSize: 12,
-        color: '#333',
+        color: 'rgba(0, 0, 0, 0.8)', 
         fontWeight: '500',
         textAlign: 'center',
     },
