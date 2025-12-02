@@ -1,16 +1,18 @@
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import ChatHeader from '@/components/messages/ChatHeader';
 import ChatInput from '@/components/messages/ChatInput';
 import ChatMessageList from '@/components/messages/ChatMessageList';
 import MessageActionModal from '@/components/messages/MessageActionModal';
 import { useChat, useImagePicker } from '@/hooks/useChat';
 import { userFirebaseService } from '@/services/userFirebaseService';
+import { chatService } from '@/services/chatService';
 import { ExtendedMessageData } from '@/types';
 import { CurrentUser } from '@/types/user';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState, useRef } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface OtherUser {
     id: string;
@@ -95,6 +97,9 @@ export default function ChatDetail() {
         editMessage,
         deleteMessage,
         recallMessage,
+        addReaction,
+        removeReaction,
+        changeReaction,
         markAsRead
     } = useChat({
         chatId: chatId as string,
@@ -254,6 +259,39 @@ export default function ChatDetail() {
         );
     }, [deleteMessage]);
 
+    const handleReactionPress = useCallback(async (emoji: string) => {
+        if (!selectedMessage || !currentUser) return;
+        
+        try {
+            // Kiểm tra xem user đã react với tin nhắn này chưa
+            const existingReaction = selectedMessage.reactions?.find(
+                reaction => reaction.userId === currentUser.id
+            );
+            
+            if (existingReaction) {
+                if (existingReaction.emoji === emoji) {
+                    // Nếu click vào cùng emoji -> xóa reaction
+                    await removeReaction(selectedMessage.id);
+                } else {
+                    // Nếu click vào emoji khác -> đổi reaction
+                    await changeReaction(selectedMessage.id, emoji);
+                }
+            } else {
+                // Chưa có reaction -> thêm mới
+                await addReaction(selectedMessage.id, emoji);
+            }
+            
+            setShowActionModal(false);
+        } catch (error) {
+            console.error('Error handling reaction:', error);
+            Alert.alert('Lỗi', 'Không thể xử lý phản ứng');
+        }
+    }, [selectedMessage, currentUser, addReaction, removeReaction, changeReaction]);
+
+    const handleMoreReactions = useCallback(async () => {
+        Alert.alert('Tính năng cập nhật sau');
+    }, [selectedMessage, currentUser]);
+
     // Show loading or error states
     if (!currentUser || !otherUser) {
         return null; 
@@ -297,6 +335,12 @@ export default function ChatDetail() {
                 onEdit={handleEditMessage}
                 onRecall={handleRecallMessage}
                 onDelete={handleDeleteMessage}
+                onReactionPress={handleReactionPress}
+                onMoreReactions={handleMoreReactions}
+                currentUserReaction={
+                    selectedMessage?.reactions?.find(r => r.userId === currentUser?.id)?.emoji || null
+                }
+                isCurrentUserMessage={selectedMessage?.isMe || false}
             />
 
             {/* Edit Modal */}
