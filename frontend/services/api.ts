@@ -10,7 +10,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 
-const LAPTOP_IP = "192.168.1.2";
+const LAPTOP_IP = "10:2:2:0";
 
 
 const getBaseUrl = () => {
@@ -23,7 +23,7 @@ const getBaseUrl = () => {
   }
 
   if (Platform.OS === "android") {
-    return `http://${LAPTOP_IP}:8080/api`;
+    return "http://10.0.2.2:8080/api";
   }
 
   if (Platform.OS === "ios" && !Constants.appOwnership) {
@@ -34,7 +34,7 @@ const getBaseUrl = () => {
     return `http://${LAPTOP_IP}:8080/api`;
   }
 
-  return `http://${LAPTOP_IP}:8080/api`;
+  return "http://10.0.2.2:8080/api";
 };
 
 const BASE_URL = getBaseUrl();
