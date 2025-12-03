@@ -1,16 +1,18 @@
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import ChatHeader from '@/components/messages/ChatHeader';
 import ChatInput from '@/components/messages/ChatInput';
 import ChatMessageList from '@/components/messages/ChatMessageList';
 import MessageActionModal from '@/components/messages/MessageActionModal';
 import { useChat, useImagePicker } from '@/hooks/useChat';
 import { userFirebaseService } from '@/services/userFirebaseService';
+import { chatService } from '@/services/chatService';
 import { ExtendedMessageData } from '@/types';
 import { CurrentUser } from '@/types/user';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface OtherUser {
     id: string;
@@ -25,6 +27,11 @@ export default function ChatDetail() {
     const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
     const [selectedMessage, setSelectedMessage] = useState<ExtendedMessageData | null>(null);
     const [showActionModal, setShowActionModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingText, setEditingText] = useState('');
+    
+    // UseRef để store message đang edit (backup cho trường hợp state bị reset)
+    const editingMessageRef = useRef<ExtendedMessageData | null>(null);
 
     useEffect(() => {
         loadCurrentUser();
@@ -41,6 +48,17 @@ export default function ChatDetail() {
             const userDataString = await AsyncStorage.getItem('currentUser');
             if (userDataString) {
                 const userData = JSON.parse(userDataString);
+                
+                try {
+                    const firebaseUserData = await userFirebaseService.getUserFromFirebase(userData.id);
+                    if (firebaseUserData) {
+                        const user = firebaseUserData as any; 
+                        userData.avatar = user.profileImage;
+                    }
+                } catch (firebaseError) {
+                    console.warn('Could not load avatar from Firebase:', firebaseError);
+                }
+                
                 setCurrentUser(userData);
             } else {
                 router.replace('/login');
@@ -79,6 +97,9 @@ export default function ChatDetail() {
         editMessage,
         deleteMessage,
         recallMessage,
+        addReaction,
+        removeReaction,
+        changeReaction,
         markAsRead
     } = useChat({
         chatId: chatId as string,
@@ -101,30 +122,25 @@ export default function ChatDetail() {
         try {
             await sendMessage(messageText);
         } catch (err) {
-            console.error('Error sending message:', err);
             Alert.alert('Lỗi', 'Không thể gửi tin nhắn');
         }
     }, [currentUser, sendMessage]);
 
     const handleRefresh = useCallback(() => {
-        console.log('Refreshing messages...');
     }, []);
 
     const handleVideoCall = useCallback(() => {
         if (!otherUser) return;
-        console.log('Starting video call with', otherUser.name);
         Alert.alert('Video Call', `Calling ${otherUser.name}...`);
     }, [otherUser]);
 
     const handleVoiceCall = useCallback(() => {
         if (!otherUser) return;
-        console.log('Starting voice call with', otherUser.name);
         Alert.alert('Voice Call', `Calling ${otherUser.name}...`);
     }, [otherUser]);
 
     const handleInfo = useCallback(() => {
         if (!otherUser) return;
-        console.log('Opening user info for', otherUser.name);
         Alert.alert('User Info', `Information for ${otherUser.name}`);
     }, [otherUser]);
 
@@ -135,7 +151,6 @@ export default function ChatDetail() {
                 await sendImage(imageUri);
             }
         } catch (err) {
-            console.error('Error picking image:', err);
             Alert.alert('Lỗi', 'Không thể gửi ảnh');
         }
     }, [pickImage, sendImage]);
@@ -147,7 +162,6 @@ export default function ChatDetail() {
                 await sendImage(imageUri);
             }
         } catch (err) {
-            console.error('Error taking photo:', err);
             Alert.alert('Lỗi', 'Không thể chụp ảnh');
         }
     }, [takePhoto, sendImage]);
@@ -162,30 +176,44 @@ export default function ChatDetail() {
         setSelectedMessage(null);
     }, []);
 
+    const handleCloseActionModalOnly = useCallback(() => {
+        setShowActionModal(false);
+    }, []);
+
     const handleEditMessage = useCallback(async (message: ExtendedMessageData) => {
-        Alert.prompt(
-            'Chỉnh sửa tin nhắn',
-            'Nhập nội dung mới:',
-            [
-                { text: 'Hủy', style: 'cancel' },
-                {
-                    text: 'Xác nhận',
-                    onPress: async (newText: string | undefined) => {
-                        if (newText && newText.trim()) {
-                            try {
-                                await editMessage(message.id, newText.trim());
-                                setShowActionModal(false);
-                            } catch {
-                                Alert.alert('Lỗi', 'Không thể chỉnh sửa tin nhắn');
-                            }
-                        }
-                    }
-                }
-            ],
-            'plain-text',
-            message.text
-        );
-    }, [editMessage]);
+        setEditingText(message.text);
+        setSelectedMessage(message);
+        editingMessageRef.current = message;
+        
+        setShowEditModal(true);
+        handleCloseActionModalOnly();
+    }, [handleCloseActionModalOnly, selectedMessage]);
+
+    const handleConfirmEdit = useCallback(async () => {
+        const messageToEdit = selectedMessage || editingMessageRef.current;
+        
+        if (!messageToEdit) {
+            return;
+        }
+        
+        if (editingText && editingText.trim()) {
+            try {
+                await editMessage(messageToEdit.id, editingText.trim());
+                setShowEditModal(false);
+                setSelectedMessage(null);
+                editingMessageRef.current = null;
+                setEditingText('');
+            } catch (error) {
+                Alert.alert('Lỗi', 'Không thể chỉnh sửa tin nhắn');
+            }
+        }
+    }, [selectedMessage, editingText, editMessage]);
+
+    const handleCancelEdit = useCallback(() => {
+        setShowEditModal(false);
+        setSelectedMessage(null);
+        setEditingText('');
+    }, []);
 
     const handleRecallMessage = useCallback(async (message: ExtendedMessageData) => {
         Alert.alert(
@@ -231,6 +259,39 @@ export default function ChatDetail() {
         );
     }, [deleteMessage]);
 
+    const handleReactionPress = useCallback(async (emoji: string) => {
+        if (!selectedMessage || !currentUser) return;
+        
+        try {
+            // Kiểm tra xem user đã react với tin nhắn này chưa
+            const existingReaction = selectedMessage.reactions?.find(
+                reaction => reaction.userId === currentUser.id
+            );
+            
+            if (existingReaction) {
+                if (existingReaction.emoji === emoji) {
+                    // Nếu click vào cùng emoji -> xóa reaction
+                    await removeReaction(selectedMessage.id);
+                } else {
+                    // Nếu click vào emoji khác -> đổi reaction
+                    await changeReaction(selectedMessage.id, emoji);
+                }
+            } else {
+                // Chưa có reaction -> thêm mới
+                await addReaction(selectedMessage.id, emoji);
+            }
+            
+            setShowActionModal(false);
+        } catch (error) {
+            console.error('Error handling reaction:', error);
+            Alert.alert('Lỗi', 'Không thể xử lý phản ứng');
+        }
+    }, [selectedMessage, currentUser, addReaction, removeReaction, changeReaction]);
+
+    const handleMoreReactions = useCallback(async () => {
+        Alert.alert('Tính năng cập nhật sau');
+    }, [selectedMessage, currentUser]);
+
     // Show loading or error states
     if (!currentUser || !otherUser) {
         return null; 
@@ -274,7 +335,49 @@ export default function ChatDetail() {
                 onEdit={handleEditMessage}
                 onRecall={handleRecallMessage}
                 onDelete={handleDeleteMessage}
+                onReactionPress={handleReactionPress}
+                onMoreReactions={handleMoreReactions}
+                currentUserReaction={
+                    selectedMessage?.reactions?.find(r => r.userId === currentUser?.id)?.emoji || null
+                }
+                isCurrentUserMessage={selectedMessage?.isMe || false}
             />
+
+            {/* Edit Modal */}
+            <Modal
+                visible={showEditModal}
+                transparent
+                animationType="fade"
+                onRequestClose={handleCancelEdit}
+            >
+                <View style={styles.editModalOverlay}>
+                    <View style={styles.editModalContent}>
+                        <Text style={styles.editModalTitle}>Chỉnh sửa tin nhắn</Text>
+                        <TextInput
+                            style={styles.editModalInput}
+                            value={editingText}
+                            onChangeText={setEditingText}
+                            multiline
+                            placeholder="Nhập nội dung mới..."
+                            autoFocus
+                        />
+                        <View style={styles.editModalButtons}>
+                            <TouchableOpacity 
+                                style={[styles.editModalButton, styles.cancelButton]} 
+                                onPress={handleCancelEdit}
+                            >
+                                <Text style={styles.cancelButtonText}>Hủy</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.editModalButton, styles.confirmButton]} 
+                                onPress={handleConfirmEdit}
+                            >
+                                <Text style={styles.confirmButtonText}>Xác nhận</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -286,5 +389,72 @@ const styles = StyleSheet.create({
     },
     keyboardView: {
         flex: 1,
+    },
+    editModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    editModalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 20,
+        width: '100%',
+        maxWidth: 400,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    editModalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 20,
+        color: '#333',
+    },
+    editModalInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 12,
+        padding: 15,
+        fontSize: 16,
+        minHeight: 80,
+        textAlignVertical: 'top',
+        marginBottom: 20,
+    },
+    editModalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    editModalButton: {
+        flex: 1,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: '#f0f0f0',
+    },
+    confirmButton: {
+        backgroundColor: '#3797f0',
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#666',
+    },
+    confirmButtonText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#fff',
     },
 });

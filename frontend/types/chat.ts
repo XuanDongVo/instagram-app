@@ -64,6 +64,8 @@ export interface FirebaseMessage {
   readBy?: MessageReadStatus[];
   isDeleted: boolean;
   deletedAt?: Timestamp;
+  isRecalled: boolean;
+  recalledAt?: Timestamp;
 }
 
 // Interface cho reaction tin nhắn
@@ -286,6 +288,9 @@ export interface UseChatReturn {
   editMessage: (messageId: string, newText: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
   recallMessage: (messageId: string) => Promise<void>;
+  addReaction: (messageId: string, emoji: string) => Promise<void>;
+  removeReaction: (messageId: string) => Promise<void>;
+  changeReaction: (messageId: string, newEmoji: string) => Promise<void>;
   markAsRead: () => Promise<void>;
   isTyping: boolean;
   setIsTyping: (typing: boolean) => void;

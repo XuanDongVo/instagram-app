@@ -24,8 +24,9 @@ export interface ExtendedMessageData
   createdAt: Date;
   updatedAt?: Date;
   replyToMessageId?: string;
-  reactions?: { userId: string; emoji: string }[];
+  reactions?: { userId: string; userName: string; emoji: string; createdAt: Date }[];
   attachments?: { url: string; type: string; fileName?: string }[];
+  isRecalled?: boolean;
 }
 
 export interface UserData {
@@ -106,4 +107,8 @@ export interface MessageActionModalProps {
   onEdit?: (message: ExtendedMessageData) => void;
   onRecall?: (message: ExtendedMessageData) => void;
   onDelete?: (message: ExtendedMessageData) => void;
+  onReactionPress?: (emoji: string) => void;
+  onMoreReactions?: () => void;
+  currentUserReaction?: string | null;
+  isCurrentUserMessage?: boolean; // Để biết có phải tin nhắn của mình không
 }

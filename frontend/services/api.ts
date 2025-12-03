@@ -10,7 +10,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 
-const LAPTOP_IP = "10:2:2:0";
+const LAPTOP_IP = "192.168.98.158";
 
 
 const getBaseUrl = () => {

@@ -92,7 +92,9 @@ export function useChat({
         replyToMessageId: fbMessage.replyToMessageId,
         reactions: fbMessage.reactions?.map((r) => ({
           userId: r.userId,
+          userName: r.userName,
           emoji: r.emoji,
+          createdAt: safeToDate(r.createdAt),
         })),
         attachments: fbMessage.attachments?.map((a) => ({
           url: a.url,
@@ -117,13 +119,13 @@ export function useChat({
           chatId,
           limit: 50,
         },
+        currentUser?.id || '', 
         (firebaseMessages) => {
-          // Convert Firebase messages to ExtendedMessageData
           const convertedMessages = firebaseMessages.map(
             convertFirebaseMessage
           );
 
-          // Sort messages by timestamp (cũ đến mới để hiển thị đúng trong chat)
+          // Sort messages by timestamp 
           convertedMessages.sort((a, b) => {
             const aTime = a.createdAt?.getTime() || 0;
             const bTime = b.createdAt?.getTime() || 0;
@@ -288,7 +290,7 @@ export function useChat({
   const recallMessage = useCallback(async (messageId: string) => {
     try {
       setError(null);
-      await chatService.deleteMessage(messageId);
+      await chatService.recallMessage(messageId);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to recall message";
@@ -297,6 +299,79 @@ export function useChat({
     }
   }, []);
 
+  // Add reaction to message
+  const addReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      if (!currentUser?.id) {
+        console.error("Cannot add reaction: user not authenticated");
+        return;
+      }
+
+      try {
+        setError(null);
+        await chatService.addReactionToMessage(
+          messageId,
+          currentUser.id,
+          currentUser.fullName || currentUser.userName,
+          emoji
+        );
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to add reaction";
+        setError(errorMessage);
+        throw err;
+      }
+    },
+    [currentUser]
+  );
+
+  // Remove reaction from message
+  const removeReaction = useCallback(
+    async (messageId: string) => {
+      if (!currentUser?.id) {
+        console.error("Cannot remove reaction: user not authenticated");
+        return;
+      }
+
+      try {
+        setError(null);
+        await chatService.removeReactionFromMessage(messageId, currentUser.id);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to remove reaction";
+        setError(errorMessage);
+        throw err;
+      }
+    },
+    [currentUser]
+  );
+
+  // Change reaction
+  const changeReaction = useCallback(
+    async (messageId: string, newEmoji: string) => {
+      if (!currentUser?.id) {
+        console.error("Cannot change reaction: user not authenticated");
+        return;
+      }
+
+      try {
+        setError(null);
+        await chatService.changeReaction(
+          messageId,
+          currentUser.id,
+          currentUser.fullName || currentUser.userName,
+          newEmoji
+        );
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to change reaction";
+        setError(errorMessage);
+        throw err;
+      }
+    },
+    [currentUser]
+  );
+
   // Mark messages as read
   const markAsRead = useCallback(async () => {
     if (!currentUser?.id) {
@@ -304,15 +379,18 @@ export function useChat({
     }
 
     try {
-      // Mark all unread messages as read
-      const unreadMessages = messages.filter(
+      // Chỉ mark những tin nhắn từ người khác và chưa đọc
+      const unreadMessagesFromOthers = messages.filter(
         (m) => !m.isMe && m.status !== "read"
       );
-      await Promise.all(
-        unreadMessages.map((m) =>
-          chatService.markMessageAsRead(currentUser.id, m.id)
-        )
-      );
+      
+      if (unreadMessagesFromOthers.length > 0) {
+        await Promise.all(
+          unreadMessagesFromOthers.map((m) =>
+            chatService.markMessageAsRead(currentUser.id, m.id)
+          )
+        );
+      }
     } catch (err) {
       console.error("Failed to mark messages as read:", err);
     }
@@ -369,6 +447,9 @@ export function useChat({
     editMessage,
     deleteMessage,
     recallMessage,
+    addReaction,
+    removeReaction,
+    changeReaction,
     markAsRead,
     isTyping,
     setIsTyping: handleTyping,
@@ -400,32 +481,61 @@ export function useChatList({
         // Get chats from Firebase với callback
         unsubscribe = chatService.getUserChats(
           currentUser.id,
-          (firebaseChats) => {
+          async (firebaseChats) => {
             // Transform Firebase chats to ChatListItem
-            const chatItems: ChatListItem[] = firebaseChats.map((chat) => {
-              // Tìm participant khác (không phải current user)
-              const otherParticipant = chat.participants?.find(
-                (p) => p.userId !== currentUser.id
-              );
+            const chatItems: ChatListItem[] = await Promise.all(
+              firebaseChats.map(async (chat) => {
+                // Tìm participant khác (không phải current user)
+                const otherParticipant = chat.participants?.find(
+                  (p) => p.userId !== currentUser.id
+                );
 
-              // Safely get timestamp for last message
-              const lastMessageTime = chat.lastMessage?.timestamp
-                ? safeToDate(chat.lastMessage.timestamp)
-                : chat.updatedAt
-                ? safeToDate(chat.updatedAt)
-                : new Date();
+                // Safely get timestamp for last message
+                const lastMessageTime = chat.lastMessage?.timestamp
+                  ? safeToDate(chat.lastMessage.timestamp)
+                  : chat.updatedAt
+                  ? safeToDate(chat.updatedAt)
+                  : new Date();
 
-              return {
-                id: chat.id,
-                name: otherParticipant?.userName || "Unknown User",
-                lastMessage: chat.lastMessage?.content || "No messages yet",
-                avatar: otherParticipant?.userAvatar || "",
-                timestamp: formatInstagramTime(lastMessageTime), // Format kiểu Instagram
-                isOnline: false, // TODO: Get from user presence
-                unreadCount: 0, // TODO: Calculate unread count
-                otherUserId: otherParticipant?.userId, // Lưu ID của user khác
-              };
-            });
+                // Lấy thông tin user từ Firebase
+                let isOtherUserOnline = false;
+                let otherUser: any = null;
+                try {
+                  otherUser = await userFirebaseService.getUserFromFirebase(otherParticipant?.userId || '');
+                  if (otherUser) {
+                    const user = otherUser as any;
+                    isOtherUserOnline = user?.isOnline || false;
+                  }
+                } catch (error) {
+                  console.error('Error getting user from Firebase:', error);
+                }
+
+                // Logic hiển thị lastMessage
+                let displayLastMessage = "";
+                if (chat.lastMessage) {
+                  // Nếu tin nhắn cuối từ người khác, hiển thị nội dung
+                  if (chat.lastMessage.senderId !== currentUser.id) {
+                    displayLastMessage = chat.lastMessage.content || "Đã gửi một tin nhắn";
+                  } else {
+                    // Nếu tin nhắn cuối từ mình, hiển thị trạng thái hoạt động của người dùng
+                    displayLastMessage = isOtherUserOnline ? "Đang hoạt động" : "Active 2h ago";
+                  }
+                } else {
+                  displayLastMessage = "Active 2h ago";
+                }
+
+                return {
+                  id: chat.id,
+                  name: otherParticipant?.userName || "Unknown User",
+                  lastMessage: displayLastMessage,
+                  avatar: otherUser?.profileImage || "",
+                  timestamp: formatInstagramTime(lastMessageTime), 
+                  isOnline: isOtherUserOnline,
+                  unreadCount: 0, 
+                  otherUserId: otherParticipant?.userId, 
+                };
+              })
+            );
 
             setChats(chatItems);
             setLoading(false);
