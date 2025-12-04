@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import CommentBottomSheet from '../../components/comments/CommentBottomSheet';
 
 type PostImage = { id: string; urlImage?: string; localSource?: any };
 type UserSummary = { id: string; userName: string; fullName: string; profileImage?: string };
@@ -70,6 +71,7 @@ function PostCard({ post }: { post: Post }) {
   const [liked, setLiked] = useState(post.liked);
   const [saved, setSaved] = useState(post.savedPost);
   const [likeCount, setLikeCount] = useState(post.likes);
+  const [showComments, setShowComments] = useState(false);
 
   const toggleLike = useCallback(() => {
     setLiked((v) => {
@@ -99,7 +101,7 @@ function PostCard({ post }: { post: Post }) {
           <Pressable onPress={toggleLike} hitSlop={10}>
             <Feather name="heart" color={liked ? '#ef4444' : undefined} size={26} />
           </Pressable>
-          <Pressable hitSlop={10}>
+          <Pressable onPress={() => setShowComments(true)} hitSlop={10}>
             <Feather name="message-circle" size={26} />
           </Pressable>
           <Pressable hitSlop={10}>
@@ -119,9 +121,19 @@ function PostCard({ post }: { post: Post }) {
             <Text style={{ color: '#737373' }}> more</Text>
           </Text>
         ) : null}
-        <Text style={styles.viewComments}>View all {post.comments} comments</Text>
+        <TouchableOpacity onPress={() => setShowComments(true)}>
+          <Text style={styles.viewComments}>View all {post.comments} comments</Text>
+        </TouchableOpacity>
         <Text style={styles.timestamp}>2 hours ago</Text>
       </View>
+
+      {/* Comment Bottom Sheet */}
+      <CommentBottomSheet
+        visible={showComments}
+        onClose={() => setShowComments(false)}
+        postId={post.id}
+        userId={CURRENT_USER_ID}
+      />
     </View>
   );
 }
