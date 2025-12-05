@@ -2,6 +2,7 @@ export * from "./chat";
 export * from "./messages";
 export * from "./post";
 export * from "./user";
+export * from "./story";
 
 export interface ApiResponse<T> {
   success: boolean;
