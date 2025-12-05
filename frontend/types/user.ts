@@ -45,6 +45,7 @@ export interface AuthResponse {
   userName: string;
   fullName: string;
   accessToken: string;
+  refreshToken?: string;
 }
 
 // Alias for CurrentUser to be used in components

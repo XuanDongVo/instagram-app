@@ -4,7 +4,7 @@ import { MessageType, UserStatus } from "../types/chat";
 
 
 export class Utils {
-  // Helper function to format time
+  // Helper function to format time for data
   static formatTime = (date: Date): string => {
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
@@ -31,5 +31,17 @@ export class Utils {
       return `${day}/${month}/${year}`;
     }
   };
+
+  // Helper function to format time from string (for API responses)
+  static formatTimeFromString = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      return Utils.formatTime(date);
+    } catch (error) {
+      console.error('Error parsing date string:', dateString, error);
+      return dateString; // Fallback to original string
+    }
+  };
+
 
 }
