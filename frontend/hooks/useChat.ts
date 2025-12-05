@@ -7,34 +7,8 @@ import { FirebaseMessage, MessageType, UserStatus } from "../types/chat";
 import { ExtendedMessageData } from "../types/messages";
 import { CurrentUser } from "../types/user";
 import { UseChatReturn, UseChatProps, UseChatListProps, ChatListItem, UseChatListReturn} from "../types/chat";
+import { Utils } from '@/utils/Utils';
 
-// Helper function to format time
-const formatInstagramTime = (date: Date): string => {
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  const diffInWeeks = Math.floor(diffInDays / 7);
-
-  if (diffInMinutes < 1) {
-    return "now";
-  } else if (diffInMinutes < 60) {
-    return `${diffInMinutes}m`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours}h`;
-  } else if (diffInDays < 7) {
-    return `${diffInDays}d`;
-  } else if (diffInWeeks < 4) {
-    return `${diffInWeeks}w`;
-  } else {
-    // Show date format for older messages
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  }
-};
 
 // Helper function to safely convert Firebase timestamp
 const safeToDate = (timestamp: any): Date => {
@@ -79,7 +53,7 @@ export function useChat({
         senderId: fbMessage.senderId,
         senderName: fbMessage.senderName,
         text: fbMessage.content,
-        timestamp: formatInstagramTime(createdAt),
+        timestamp: Utils.formatTime(createdAt),
         isMe: fbMessage.senderId === (currentUser?.id || ""),
         avatar: fbMessage.senderAvatar,
         type: fbMessage.type,
@@ -529,7 +503,7 @@ export function useChatList({
                   name: otherParticipant?.userName || "Unknown User",
                   lastMessage: displayLastMessage,
                   avatar: otherUser?.profileImage || "",
-                  timestamp: formatInstagramTime(lastMessageTime), 
+                  timestamp: Utils.formatTime(lastMessageTime), 
                   isOnline: isOtherUserOnline,
                   unreadCount: 0, 
                   otherUserId: otherParticipant?.userId, 

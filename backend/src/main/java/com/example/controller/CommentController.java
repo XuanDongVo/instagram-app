@@ -39,9 +39,11 @@ public class CommentController {
     }
 
     @GetMapping("/post/{postId}")
-    public ResponseEntity<ApiResponse<List<CommentResponseDTO>>> getCommentsByPostId(@PathVariable String postId) {
+    public ResponseEntity<ApiResponse<List<CommentResponseDTO>>> getCommentsByPostId(
+            @PathVariable String postId,
+            @RequestParam(required = false) String currentUserId) {
         try {
-            List<CommentResponseDTO> comments = commentService.getCommentInPost(postId);
+            List<CommentResponseDTO> comments = commentService.getCommentInPost(postId, currentUserId);
             return ResponseEntity.ok(
                     ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách bình luận thành công.", comments)
             );
@@ -87,6 +89,56 @@ public class CommentController {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Cập nhật bình luận thất bại."));
+        }
+    }
+
+    @PostMapping("/{commentId}/like")
+    public ResponseEntity<ApiResponse<CommentResponseDTO>> toggleLike(
+            @PathVariable String commentId,
+            @RequestParam String userId) {
+        try {
+            CommentResponseDTO commentResponseDTO = commentService.toggleLike(commentId, userId);
+            return ResponseEntity.ok(
+                    ApiResponse.success(HttpStatus.OK.value(), "Thao tác like thành công.", commentResponseDTO)
+            );
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(HttpStatus.NOT_FOUND.value(), "Không tìm thấy bình luận hoặc người dùng."));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Thao tác like thất bại."));
+        }
+    }
+
+    @GetMapping("/{commentId}/likes/count")
+    public ResponseEntity<ApiResponse<Long>> getCommentLikesCount(@PathVariable String commentId) {
+        try {
+            Long likesCount = commentService.getCommentLikesCount(commentId);
+            return ResponseEntity.ok(
+                    ApiResponse.success(HttpStatus.OK.value(), "Lấy số lượt thích thành công.", likesCount)
+            );
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Không thể lấy số lượt thích."));
+        }
+    }
+
+    @GetMapping("/{commentId}/likes/status")
+    public ResponseEntity<ApiResponse<Boolean>> checkCommentLikeStatus(
+            @PathVariable String commentId,
+            @RequestParam String userId) {
+        try {
+            Boolean isLiked = commentService.isCommentLikedByUser(commentId, userId);
+            return ResponseEntity.ok(
+                    ApiResponse.success(HttpStatus.OK.value(), "Lấy trạng thái like thành công.", isLiked)
+            );
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Không thể lấy trạng thái like."));
         }
     }
 }

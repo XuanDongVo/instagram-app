@@ -1,7 +1,23 @@
 import { UserResponse } from "./user";
 
 // ==================== COMMENT  ====================
-export interface Comment {}
+export interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+  user: {
+    id: string;
+    userName: string;
+    profileImage?: string;
+  };
+  replies?: Comment[];
+  likesCount?: number;
+  isLiked?: boolean;
+  isReply?: boolean;
+  parentComment?: Comment;
+  originalParent?: Comment;
+}
 
 export interface CommentRequest {
   content: string;

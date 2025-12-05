@@ -10,7 +10,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 
-const LAPTOP_IP = "192.168.98.158";
+const LAPTOP_IP = "192.168.1.6";
 
 
 const getBaseUrl = () => {
@@ -79,10 +79,9 @@ export const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem("accessToken");
-
     if (
-      // !config.url?.includes("/auth/register") &&
-      // !config.url?.includes("/auth/login") &&
+      !config.url?.includes("/auth/register") &&
+      !config.url?.includes("/auth/login") &&
       token &&
       token !== "null" &&
       token !== "undefined" &&
