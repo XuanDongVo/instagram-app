@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { Comment } from '../../types/post';
+import { Comment } from '../../types/comment';
 import { useComments } from '../../hooks/useComments';
 import CommentItem from './CommentItem';
 import CommentInput from './CommentInput';
@@ -50,6 +50,7 @@ export default function CommentBottomSheet({
     loadComments,
     addComment,
     deleteComment,
+    toggleLike,
   } = useComments({
     postId,
     userId,
@@ -94,7 +95,6 @@ export default function CommentBottomSheet({
 
   useEffect(() => {
     if (visible) {
-      // Animate in
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: 0,
@@ -108,10 +108,8 @@ export default function CommentBottomSheet({
         }),
       ]).start();
       
-      // Load comments
       loadComments();
     } else {
-      // Animate out
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: BOTTOM_SHEET_HEIGHT,
@@ -267,6 +265,7 @@ export default function CommentBottomSheet({
                       comment={comment}
                       onReply={handleReply}
                       onDelete={handleDeleteComment}
+                      onToggleLike={toggleLike}
                       currentUserId={userId}
                       isReply={(comment as any).isReply}
                       parentComment={(comment as any).parentComment}
@@ -284,7 +283,7 @@ export default function CommentBottomSheet({
                 onCancelReply={() => setReplyingTo(null)}
                 placeholder={
                   replyingTo 
-                    ? `Trả lời ${replyingTo.user?.userName || 'user'}...`
+                    ? `Trả lời ${replyingTo.sender?.userName || 'user'}...`
                     : "Viết bình luận..."
                 }
               />

@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Comment } from '../../types/post';
+import { Comment } from '../../types/comment';
 
 interface CommentInputProps {
   value: string;

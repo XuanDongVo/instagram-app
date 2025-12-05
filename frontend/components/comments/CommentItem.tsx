@@ -8,13 +8,14 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Comment } from '../../types/post';
+import { Comment } from '../../types/comment';
 import { Utils } from '@/utils/Utils';
 
 interface CommentItemProps {
   comment: Comment;
   onReply: (comment: Comment) => void;
   onDelete: (commentId: string) => void;
+  onToggleLike: (commentId: string) => void;
   currentUserId: string;
   isReply?: boolean;
   parentComment?: Comment;
@@ -24,17 +25,13 @@ export default function CommentItem({
   comment,
   onReply,
   onDelete,
+  onToggleLike,
   currentUserId,
   isReply = false,
   parentComment,
 }: CommentItemProps) {
-  const [isLiked, setIsLiked] = useState(comment.isLiked || false);
-  const [likesCount, setLikesCount] = useState(comment.likesCount || 0);
-
   const handleLike = () => {
-    const newIsLiked = !isLiked;
-    setIsLiked(newIsLiked);
-    setLikesCount(prev => newIsLiked ? prev + 1 : prev - 1);
+    onToggleLike(comment.id);
   };
 
   const handleDelete = () => {
@@ -53,15 +50,15 @@ export default function CommentItem({
   };
 
 
-  const isOwnComment = comment.user.id === currentUserId;
+  const isOwnComment = comment.sender.id === currentUserId;
 
   return (
     <View style={[styles.container, isReply && styles.replyContainer]}>
       {/* Avatar */}
       <TouchableOpacity>
-        {comment.user.profileImage ? (
+        {comment.sender.profileImage ? (
           <Image
-            source={{ uri: comment.user.profileImage }}
+            source={{ uri: comment.sender.profileImage }}
             style={styles.avatar}
           />
         ) : (
@@ -76,13 +73,13 @@ export default function CommentItem({
         {/* Username and content */}
         <View style={styles.messageContainer}>
           <Text style={styles.username}>
-            {comment.user.userName}
+            {comment.sender.userName}
           </Text>
           
           <Text style={styles.messageText}>
             {isReply && parentComment && (
               <Text style={styles.replyToText}>
-                @{parentComment.user.userName}{' '}
+                @{parentComment.sender.userName}{' '}
               </Text>
             )}
             {comment.content}
@@ -92,12 +89,12 @@ export default function CommentItem({
         {/* Actions */}
         <View style={styles.actionsContainer}>
           <Text style={styles.timeText}>
-            {/* {Utils.formatTime(comment.createdAt.toDate())} */}
+            {Utils.formatTimeFromString(comment.createdAt)}
           </Text>
 
-          {likesCount > 0 && (
+          {comment.likesCount && comment.likesCount > 0 && (
             <Text style={styles.likesText}>
-              {likesCount} lượt thích
+              {comment.likesCount} lượt thích
             </Text>
           )}
 
@@ -128,9 +125,9 @@ export default function CommentItem({
         style={styles.likeButton}
       >
         <Ionicons
-          name={isLiked ? 'heart' : 'heart-outline'}
+          name={comment.isLiked ? 'heart' : 'heart-outline'}
           size={12}
-          color={isLiked ? '#FF3040' : '#888'}
+          color={comment.isLiked ? '#FF3040' : '#888'}
         />
       </TouchableOpacity>
     </View>
