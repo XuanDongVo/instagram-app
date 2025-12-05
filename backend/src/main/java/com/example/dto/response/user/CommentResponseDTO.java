@@ -16,7 +16,10 @@ import lombok.Setter;
 public class CommentResponseDTO {
     private String id;
     private String content;
+    private String createdAt;
+    private String updatedAt;
     private UserResponse sender;
-    private String createAt;
     private List<CommentResponseDTO> replies;
+    private Long likesCount;
+    private Boolean isLiked;
 }

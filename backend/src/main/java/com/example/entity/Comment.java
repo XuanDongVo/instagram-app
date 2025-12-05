@@ -55,6 +55,10 @@ public class Comment {
     @JsonIgnoreProperties({"post", "sender", "replies", "parentComment"})
     private List<Comment> replies = new ArrayList<>();
 
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"comment", "user"})
+    private List<CommentLike> likes = new ArrayList<>();
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createAt;
 
