@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Modal,
   View,
@@ -39,7 +39,6 @@ export function StoryViewer({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPaused, setIsPaused] = useState(false);
   const progressAnims = useRef<Animated.Value[]>([]);
-  const timerRef = useRef<NodeJS.Timeout>();
 
   const currentStory = stories[currentIndex];
 
@@ -47,6 +46,20 @@ export function StoryViewer({
   useEffect(() => {
     progressAnims.current = stories.map(() => new Animated.Value(0));
   }, [stories]);
+
+  const handleNext = useCallback(() => {
+    if (currentIndex < stories.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      onClose();
+    }
+  }, [currentIndex, stories.length, onClose]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  }, [currentIndex]);
 
   // Handle story progress and auto-advance
   useEffect(() => {
@@ -75,21 +88,7 @@ export function StoryViewer({
     return () => {
       animation.stop();
     };
-  }, [visible, currentIndex, isPaused, currentStory]);
-
-  const handleNext = () => {
-    if (currentIndex < stories.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      onClose();
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
+  }, [visible, currentIndex, isPaused, currentStory, onView, handleNext]);
 
   const handlePress = (x: number) => {
     const halfScreen = width / 2;
