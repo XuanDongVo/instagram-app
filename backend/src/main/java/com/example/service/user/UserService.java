@@ -278,4 +278,19 @@ public class UserService {
         return lists.stream().map(mapper::toUserResponse).collect(Collectors.toList());
     }
 
+    @Transactional
+    public void removeFollower(String currentUserId, String followerId) {
+        if (currentUserId.equals(followerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể tự xóa chính mình khỏi danh sách followers");
+        }
+
+        // Kiểm tra xem followerId có thực sự đang follow currentUserId không
+        long followCount = followRepository.countByUserIdAndFollowerId(currentUserId, followerId);
+        if (followCount == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Người này không theo dõi bạn");
+        }
+
+        // XÓA quan hệ follow
+        followRepository.deleteByUserIdAndFollowerId(currentUserId, followerId);
+    }
 }

@@ -212,6 +212,7 @@ api.interceptors.response.use(
 );
 
 export class ApiService {
+  static api = api;
   static async setTokens(accessToken: string, refreshToken?: string): Promise<void> {
     await AsyncStorage.setItem("accessToken", accessToken);
     if (refreshToken) {
@@ -268,8 +269,14 @@ export class ApiService {
 
 export default api;
 
-export interface ApiResponse<T = unknown> {
+// export interface ApiResponse<T = unknown> {
+//   data: T;
+//   success: boolean;
+//   message?: string;
+// }
+
+export interface ApiResponse<T> {
+  status: number;
+  message: string | null;
   data: T;
-  success: boolean;
-  message?: string;
 }

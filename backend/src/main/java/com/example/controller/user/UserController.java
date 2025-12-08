@@ -170,4 +170,42 @@ public class UserController {
         }
     }
 
+    // THÊM VÀO UserController.java
+
+    @DeleteMapping("/removeFollowers")
+    public ResponseEntity<ApiResponse> removeFollower(
+            @RequestParam("id") String currentUserId,
+            @RequestParam("followerId") String followerId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        // Xác thực: chỉ được xóa follower của chính mình
+        String authenticatedUserId = userService.getIdByEmail(jwt.getSubject());
+        if (!currentUserId.equals(authenticatedUserId)) {
+            return ResponseEntity.ok(ApiResponse.error(
+                    HttpStatus.FORBIDDEN.value(),
+                    "Bạn chỉ có thể xóa người theo dõi khỏi hồ sơ của chính mình"
+            ));
+        }
+
+        try {
+            // Thực hiện xóa follower
+            userService.removeFollower(currentUserId, followerId);
+
+            // Lấy lại profile mới nhất (followersCount đã giảm)
+            UserProfileResponse updatedProfile = userService.getUserProfile(currentUserId, currentUserId);
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    HttpStatus.OK.value(),
+                    "Đã xóa người theo dõi thành công",
+                    updatedProfile
+            ));
+
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(ApiResponse.error(e.getStatusCode().value(), e.getReason()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Lỗi server khi xóa người theo dõi"));
+        }
+    }
 }

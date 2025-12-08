@@ -58,3 +58,27 @@ export interface CurrentUser {
   avatar?: string;
 }
 
+// Sửa interface UserProfileResponse để khớp với JSON mới
+export interface UserProfileResponse {
+    userId: string;       // Tên trường mới
+    userName: string;     // Tên trường mới
+    fullName: string;
+    avatarUrl: string | null; // Tên trường mới
+    bio: string | null;
+    followersCount: number;
+    followingCount: number;
+    postCount: number;
+    followers: any[];
+    followings: any[];
+    posts: any[];
+    following: boolean; // Tên trường thực tế là 'following'
+    me: boolean;
+}
+
+export type UpdateProfileRequest = {
+  username?: string;
+  fullName?: string;
+  bio?: string;
+  // ... các trường có thể cập nhật
+};
+
