@@ -4,16 +4,7 @@ import { useStory } from '@/hooks/useStory';
 import { StoryCircle } from './StoryCircle';
 import { CreateStoryModal } from './CreateStoryModal';
 import { StoryViewer } from './StoryViewer';
-import { StoryResponse } from '@/types/story';
-
-interface StoryUser {
-  userId: string;
-  userName: string;
-  profileImage?: string;
-  stories: StoryResponse[];
-  hasStory: boolean;
-  isViewed: boolean;
-}
+import { StoryResponse, StoryUser } from '@/types/story';
 
 export function StoryBar() {
   const {
@@ -63,8 +54,6 @@ export function StoryBar() {
   const allStoryUsers = useMemo(() => {
     const users = new Map<string, StoryUser>();
     
-    console.log('Building story list - myStories:', myStories.length, 'stories:', stories.length);
-    
     // Add current user if they have stories
     if (currentUserId && myStories.length > 0) {
       users.set(currentUserId, {
@@ -95,9 +84,7 @@ export function StoryBar() {
       }
     });
 
-    const result = Array.from(users.values());
-    console.log('Total story users:', result.length);
-    return result;
+    return Array.from(users.values());
   }, [stories, myStories, currentUserId]);
 
   return (

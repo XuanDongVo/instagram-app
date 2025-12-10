@@ -5,6 +5,15 @@ export enum MediaType {
   VIDEO = "VIDEO",
 }
 
+export interface StoryUser {
+  userId: string;
+  userName: string;
+  profileImage?: string;
+  stories: StoryResponse[];
+  hasStory: boolean;
+  isViewed: boolean;
+}
+
 export interface StoryResponse {
   id: string;
   mediaUrl: string;
