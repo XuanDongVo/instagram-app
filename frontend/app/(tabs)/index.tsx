@@ -5,10 +5,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useStory } from '@/hooks/useStory';
-import { StoryCircle } from '@/components/story/StoryCircle';
-import { CreateStoryModal } from '@/components/story/CreateStoryModal';
-import { StoryViewer } from '@/components/story/StoryViewer';
+import { StoryBar } from '@/components/story/StoryBar';
 import CommentBottomSheet from '../../components/comments/CommentBottomSheet';
 
 type PostImage = { id: string; urlImage?: string; localSource?: any };
@@ -41,150 +38,6 @@ function HeaderBar() {
         </TouchableOpacity>
       </View>
     </View>
-  );
-}
-
-function StoryBar() {
-  const {
-    stories,
-    myStories,
-    loading,
-    currentUserId,
-    createStory,
-    viewStory,
-    deleteStory,
-    pickImage,
-    pickVideo,
-    loadStories,
-  } = useStory();
-
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showViewer, setShowViewer] = useState(false);
-  const [viewerStories, setViewerStories] = useState<any[]>([]);
-  const [viewerIndex, setViewerIndex] = useState(0);
-  const [isMyStoryViewer, setIsMyStoryViewer] = useState(false);
-
-  const handleOpenCreateModal = () => {
-    setShowCreateModal(true);
-  };
-
-  const handleViewMyStories = () => {
-    if (myStories.length > 0) {
-      setViewerStories(myStories);
-      setViewerIndex(0);
-      setIsMyStoryViewer(true);
-      setShowViewer(true);
-    } else {
-      handleOpenCreateModal();
-    }
-  };
-
-  const handleViewStory = (storyUserId: string) => {
-    const userStories = stories.filter(s => s.user.id === storyUserId);
-    if (userStories.length > 0) {
-      setViewerStories(userStories);
-      setViewerIndex(0);
-      setIsMyStoryViewer(false);
-      setShowViewer(true);
-    }
-  };
-
-  // Combine my stories with other users' stories
-  const allStoryUsers = useMemo(() => {
-    const users = new Map();
-    
-    console.log('Building story list - myStories:', myStories.length, 'stories:', stories.length);
-    
-    // Add current user if they have stories
-    if (currentUserId && myStories.length > 0) {
-      users.set(currentUserId, {
-        userId: currentUserId,
-        userName: 'Your story',
-        profileImage: myStories[0]?.user.profileImage,
-        stories: myStories,
-        hasStory: true,
-        isViewed: myStories.every(s => s.viewed),
-      });
-    }
-
-    // Add other users
-    stories.forEach(story => {
-      if (!users.has(story.user.id)) {
-        users.set(story.user.id, {
-          userId: story.user.id,
-          userName: story.user.userName,
-          profileImage: story.user.profileImage,
-          stories: [story],
-          hasStory: true,
-          isViewed: story.viewed,
-        });
-      } else {
-        const user = users.get(story.user.id);
-        user.stories.push(story);
-        user.isViewed = user.isViewed && story.viewed;
-      }
-    });
-
-    const result = Array.from(users.values());
-    console.log('Total story users:', result.length);
-    return result;
-  }, [stories, myStories, currentUserId]);
-
-  return (
-    <>
-      <FlatList
-        data={[{ isAddButton: true }, ...allStoryUsers]}
-        keyExtractor={(item, index) => 
-          item.isAddButton ? 'add-story' : `story-${item.userId}-${index}`
-        }
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.storyRow}
-        renderItem={({ item }) => {
-          if (item.isAddButton) {
-            return (
-              <StoryCircle
-                userName="Your story"
-                isAddStory={true}
-                onPress={handleOpenCreateModal}
-              />
-            );
-          }
-
-          const isMyStory = item.userId === currentUserId;
-          return (
-            <StoryCircle
-              userName={item.userName}
-              profileImage={item.profileImage}
-              hasStory={item.hasStory}
-              isViewed={item.isViewed}
-              onPress={() => 
-                isMyStory ? handleViewMyStories() : handleViewStory(item.userId)
-              }
-            />
-          );
-        }}
-      />
-
-      <CreateStoryModal
-        visible={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onPickImage={pickImage}
-        onPickVideo={pickVideo}
-        onCreateStory={createStory}
-        loading={loading}
-      />
-
-      <StoryViewer
-        visible={showViewer}
-        stories={viewerStories}
-        initialIndex={viewerIndex}
-        onClose={() => setShowViewer(false)}
-        onView={viewStory}
-        onDelete={isMyStoryViewer ? deleteStory : undefined}
-        isMyStory={isMyStoryViewer}
-      />
-    </>
   );
 }
 
@@ -380,11 +233,6 @@ const styles = StyleSheet.create({
   },
   brandText: { fontSize: 28, fontWeight: '600' },
   iconBtn: { width: 22, height: 22 },
-  storyRow: { paddingVertical: 8, paddingHorizontal: 8, gap: 12 },
-  storyItem: { alignItems: 'center', marginHorizontal: 6, width: 70 },
-  storyRing: { padding: 3, borderRadius: 40, borderWidth: 2, borderColor: '#f77737' },
-  storyAvatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#ddd' },
-  storyLabel: { fontSize: 12, marginTop: 6, textAlign: 'center' },
   card: { marginBottom: 16 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 10 },
   cardAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#ddd' },
