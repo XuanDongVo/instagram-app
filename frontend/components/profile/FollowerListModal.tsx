@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,9 +10,8 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { profileService } from "../../services/profileService";
 import { useRouter } from "expo-router";
+import { profileService } from "../../services/profileService";
 
 interface ModalUser {
   id: string;
@@ -28,6 +27,7 @@ interface FollowerListModalProps {
   fetchUsers: () => Promise<ModalUser[]>;
   currentUserId: string;
   isMyFollowersList?: boolean; // true = followers, false = following
+  isMyProfile?: boolean; // true = profile của chính mình
   onRemoveFollower?: (userId: string) => Promise<void>;
   onUnfollow?: (userId: string) => Promise<void>;
 }
@@ -39,14 +39,14 @@ export default function FollowerListModal({
   fetchUsers,
   currentUserId,
   isMyFollowersList = false,
+  isMyProfile = false,
   onRemoveFollower,
   onUnfollow,
 }: FollowerListModalProps) {
   const [listUsers, setListUsers] = useState<ModalUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const navigation = useNavigation<any>();
   const router = useRouter();
-  // Fetch users khi mở modal
+
   useEffect(() => {
     if (visible) {
       setIsLoading(true);
@@ -62,7 +62,6 @@ export default function FollowerListModal({
     }
   }, [visible, fetchUsers]);
 
-  // Follow / Unfollow
   const handleFollowToggle = async (targetId: string, currentlyFollowing: boolean) => {
     setListUsers((prev) =>
       prev.map((u) =>
@@ -88,7 +87,6 @@ export default function FollowerListModal({
     }
   };
 
-  // Remove follower
   const handleRemove = (userId: string, username: string) => {
     Alert.alert(
       "Xóa người theo dõi",
@@ -113,59 +111,77 @@ export default function FollowerListModal({
   };
 
   const renderUser = ({ item }: { item: ModalUser }) => {
-  const isMe = item.id === currentUserId;
+    const isMe = item.id === currentUserId;
 
-  return (
-    <View style={styles.userRow}>
-      {/* Nhấn avatar / username mở profile */}
-      <TouchableOpacity
-        style={styles.userInfo}
-        onPress={() => {
-          onClose(); // đóng modal
-          router.push({
-            pathname: "/user/[userId]",
-            params: { userId: item.id },
-          });
-        }}
-      >
-        <Image source={item.avatar} style={styles.avatar} />
-        <Text style={styles.username}>{item.username}</Text>
-      </TouchableOpacity>
+    return (
+      <View style={styles.userRow}>
+        <TouchableOpacity
+          style={styles.userInfo}
+          onPress={() => {
+            onClose(); // đóng modal
+            router.push({
+              pathname: "/user/[userId]",
+              params: { userId: item.id },
+            });
+          }}
+        >
+          <Image source={item.avatar} style={styles.avatar} />
+          <Text style={styles.username}>{item.username}</Text>
+        </TouchableOpacity>
 
-      {!isMe && (
-        <>
-          {isMyFollowersList ? (
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => handleRemove(item.id, item.username)}
-            >
-              <Text style={styles.removeText}>Remove</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.followButton,
-                item.isFollowing
-                  ? styles.followingButton
-                  : styles.activeFollowButton,
-              ]}
-              onPress={() => handleFollowToggle(item.id, item.isFollowing)}
-            >
-              <Text
+        {!isMe && (
+          <>
+            {isMyProfile ? (
+              // Profile chính mình
+              isMyFollowersList ? (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => handleRemove(item.id, item.username)}
+                >
+                  <Text style={styles.removeText}>Remove</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.followButton,
+                    item.isFollowing ? styles.followingButton : styles.activeFollowButton,
+                  ]}
+                  onPress={() => handleFollowToggle(item.id, item.isFollowing)}
+                >
+                  <Text
+                    style={[
+                      styles.followButtonText,
+                      item.isFollowing ? styles.followingText : styles.activeFollowText,
+                    ]}
+                  >
+                    {item.isFollowing ? "Following" : "Follow"}
+                  </Text>
+                </TouchableOpacity>
+              )
+            ) : (
+              // Profile người khác
+              <TouchableOpacity
                 style={[
-                  styles.followButtonText,
-                  item.isFollowing ? styles.followingText : styles.activeFollowText,
+                  styles.followButton,
+                  item.isFollowing ? styles.followingButton : styles.activeFollowButton,
                 ]}
+                onPress={() => handleFollowToggle(item.id, item.isFollowing)}
               >
-                {item.isFollowing ? "Following" : "Follow"}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
-    </View>
-  );
-};
+                <Text
+                  style={[
+                    styles.followButtonText,
+                    item.isFollowing ? styles.followingText : styles.activeFollowText,
+                  ]}
+                >
+                  {item.isFollowing ? "Following" : "Follow"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+      </View>
+    );
+  };
 
   return (
     <Modal animationType="slide" transparent visible={visible}>

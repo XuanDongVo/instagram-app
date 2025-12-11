@@ -8,5 +8,5 @@ export default function UserPage() {
 
   if (!userId) return <Text>Không tìm thấy userId</Text>;
 
-  return <UserProfileScreen userId={userId} />;
+  return <UserProfileScreen key={userId} />;
 }
