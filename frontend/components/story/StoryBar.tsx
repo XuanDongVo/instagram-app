@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { useStory } from '@/hooks/useStory';
-import { StoryCircle } from './StoryCircle';
+import { StoryList } from './StoryList';
 import { CreateStoryModal } from './CreateStoryModal';
 import { StoryViewer } from './StoryViewer';
 import { StoryResponse, StoryUser } from '@/types/story';
@@ -50,6 +50,14 @@ export function StoryBar() {
     }
   };
 
+  const handleStoryPress = (userId: string, isMyStory: boolean) => {
+    if (isMyStory) {
+      handleViewMyStories();
+    } else {
+      handleViewStory(userId);
+    }
+  };
+
   // Combine my stories with other users' stories
   const allStoryUsers = useMemo(() => {
     const users = new Map<string, StoryUser>();
@@ -89,41 +97,12 @@ export function StoryBar() {
 
   return (
     <View>
-      <FlatList
-        data={[{ isAddButton: true }, ...allStoryUsers]}
-        keyExtractor={(item, index) => 
-          'isAddButton' in item && item.isAddButton 
-            ? 'add-story' 
-            : `story-${(item as StoryUser).userId}-${index}`
-        }
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.storyRow}
-        renderItem={({ item }) => {
-          if ('isAddButton' in item && item.isAddButton) {
-            return (
-              <StoryCircle
-                userName="Your story"
-                isAddStory={true}
-                onPress={handleOpenCreateModal}
-              />
-            );
-          }
-
-          const storyUser = item as StoryUser;
-          const isMyStory = storyUser.userId === currentUserId;
-          return (
-            <StoryCircle
-              userName={storyUser.userName}
-              profileImage={storyUser.profileImage}
-              hasStory={storyUser.hasStory}
-              isViewed={storyUser.isViewed}
-              onPress={() => 
-                isMyStory ? handleViewMyStories() : handleViewStory(storyUser.userId)
-              }
-            />
-          );
-        }}
+      <StoryList
+        storyUsers={allStoryUsers}
+        currentUserId={currentUserId}
+        showAddButton={true}
+        onAddPress={handleOpenCreateModal}
+        onStoryPress={handleStoryPress}
       />
 
       <CreateStoryModal
@@ -147,11 +126,3 @@ export function StoryBar() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  storyRow: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 4,
-  },
-});
