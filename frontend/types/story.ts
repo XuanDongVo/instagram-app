@@ -14,6 +14,14 @@ export interface StoryUser {
   isViewed: boolean;
 }
 
+export interface StoryListProps {
+  storyUsers: StoryUser[];
+  currentUserId?: string | null;
+  showAddButton?: boolean;
+  onAddPress?: () => void;
+  onStoryPress: (userId: string, isMyStory: boolean) => void;
+}
+
 export interface StoryResponse {
   id: string;
   mediaUrl: string;

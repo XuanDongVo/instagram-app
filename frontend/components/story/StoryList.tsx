@@ -1,15 +1,7 @@
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { StoryCircle } from './StoryCircle';
-import { StoryUser } from '@/types/story';
-
-interface StoryListProps {
-  storyUsers: StoryUser[];
-  currentUserId?: string | null;
-  showAddButton?: boolean;
-  onAddPress?: () => void;
-  onStoryPress: (userId: string, isMyStory: boolean) => void;
-}
+import { StoryUser, StoryListProps } from '@/types/story';
 
 export function StoryList({
   storyUsers,
