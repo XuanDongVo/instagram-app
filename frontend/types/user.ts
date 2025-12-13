@@ -1,3 +1,4 @@
+import { StoryResponse } from './story';
 export interface UserResponse {
   id: string;
   userName: string;
@@ -58,3 +59,12 @@ export interface CurrentUser {
   avatar?: string;
 }
 
+
+export interface UserSearchResponse {
+  id: string;
+  userName: string;
+  fullName: string;
+  profileImage?: string;
+  hasStory: boolean;
+  stories: StoryResponse[];
+}
