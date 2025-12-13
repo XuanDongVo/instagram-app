@@ -3,14 +3,10 @@ import { View, StyleSheet, Dimensions, TouchableOpacity, Text } from 'react-nati
 import { Image } from 'expo-image';
 import { PostResponse } from '@/types/post';
 import { Feather } from '@expo/vector-icons';
+import { PostGridProps } from '@/types/post';
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = (width - 4) / 3; // 3 columns with 2px gap
-
-interface PostGridProps {
-  posts: PostResponse[];
-  onPostPress?: (post: PostResponse) => void;
-}
 
 export function PostGrid({ posts, onPostPress }: PostGridProps) {
   const renderGridItem = (post: PostResponse, index: number) => {
@@ -35,13 +31,13 @@ export function PostGrid({ posts, onPostPress }: PostGridProps) {
             <Feather name="image" size={40} color="#d4d4d4" />
           </View>
         )}
-        
+
         {hasMultipleImages && (
           <View style={styles.multipleIndicator}>
             <Feather name="copy" size={16} color="#fff" />
           </View>
         )}
-        
+
         {/* Optional: Show likes/comments overlay */}
         <View style={styles.overlay}>
           <View style={styles.statsRow}>
