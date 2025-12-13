@@ -1,3 +1,4 @@
+import { StoryResponse } from './story';
 export interface UserResponse {
   id: string;
   userName: string;
@@ -82,3 +83,12 @@ export type UpdateProfileRequest = {
   // ... các trường có thể cập nhật
 };
 
+
+export interface UserSearchResponse {
+  id: string;
+  userName: string;
+  fullName: string;
+  profileImage?: string;
+  hasStory: boolean;
+  stories: StoryResponse[];
+}

@@ -22,7 +22,6 @@ type Post = {
   user: UserSummary;
 };
 
-const API_BASE = ((process.env as any).EXPO_PUBLIC_API_BASE as string) || (Platform.OS === 'android' ? 'http://10.0.2.2:8081' : 'http://localhost:8081');
 const CURRENT_USER_ID = ((process.env as any).EXPO_PUBLIC_USER_ID as string) || '';
 
 function HeaderBar() {
@@ -167,12 +166,6 @@ export default function HomeScreen() {
 
   const fetchPosts = useCallback(async () => {
     try {
-      // setLoading(true);
-      // const res = await fetch(`${API_BASE}/api/v1/post?id=${encodeURIComponent(CURRENT_USER_ID)}`);
-      // const json = await res.json();
-      // const data = json?.data ?? [];
-      // setPosts(data.length > 0 ? data : buildMockPosts());
-
       setPosts(buildMockPosts());
     } catch (e) {
       console.error('Load posts error', e);

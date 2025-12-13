@@ -1,4 +1,4 @@
-import { UserResponse } from "./user";
+import { UserResponse, UserSearchResponse } from "./user";
 
 export enum MediaType {
   IMAGE = "IMAGE",
@@ -8,10 +8,19 @@ export enum MediaType {
 export interface StoryUser {
   userId: string;
   userName: string;
+  fullName?: string;
   profileImage?: string;
   stories: StoryResponse[];
   hasStory: boolean;
   isViewed: boolean;
+}
+
+export interface StoryListProps {
+  storyUsers: StoryUser[];
+  currentUserId?: string | null;
+  showAddButton?: boolean;
+  onAddPress?: () => void;
+  onStoryPress: (userId: string, isMyStory: boolean) => void;
 }
 
 export interface StoryResponse {
@@ -51,4 +60,10 @@ export interface ViewStoryRequest {
 export interface DeleteStoryRequest {
   storyId: string;
   userId: string;
+}
+
+export interface UserStoryAvatarProps {
+  user: UserSearchResponse;
+  currentUserId?: string | null;
+  onPress?: (userId: string, isMyStory: boolean) => void;
 }
