@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRoute } from "@react-navigation/native";
 import { router } from "expo-router";
 import { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Dimensions,
   FlatList,
@@ -57,6 +58,73 @@ export default function Profile() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("grid");
   const [menuVisible, setMenuVisible] = useState(false);
+
+  const handleRemoveFollower = async (userId: string) => {
+    // Reduce followers count for the profile being viewed
+    setUser(prev => (prev ? { ...prev, followers: prev.followers - 1 } : prev));
+
+    // If this is my profile, update myProfile and persist to AsyncStorage
+    if (isMyProfile) {
+      setMyProfile(prev => (prev ? { ...prev, followers: prev.followers - 1 } : prev));
+      (async () => {
+        try {
+          const currentUserString = await AsyncStorage.getItem("currentUser");
+          if (currentUserString) {
+            const cu = JSON.parse(currentUserString);
+            cu.followersCount = (cu.followersCount ?? 1) - 1;
+            await AsyncStorage.setItem("currentUser", JSON.stringify(cu));
+          }
+        } catch (e) {
+          console.warn("Failed to update stored currentUser followersCount:", e);
+        }
+      })();
+    }
+  };
+
+  const handleUnfollowFromFollowing = async (unfollowedUserId: string) => {
+    // Decrement following count for the profile being viewed
+    setUser(prev => (prev ? { ...prev, following: prev.following - 1 } : prev));
+
+    // Also update myProfile and stored currentUser followingCount
+    setMyProfile(prev => (prev ? { ...prev, following: prev.following - 1 } : prev));
+    try {
+      const currentUserString = await AsyncStorage.getItem("currentUser");
+      if (currentUserString) {
+        const cu = JSON.parse(currentUserString);
+        cu.followingCount = (cu.followingCount ?? 1) - 1;
+        await AsyncStorage.setItem("currentUser", JSON.stringify(cu));
+      }
+    } catch (e) {
+      console.warn("Failed to update stored currentUser followingCount:", e);
+    }
+  };
+
+  const [myProfile, setMyProfile] = useState<UserProfileState | null>(null);
+
+  const fetchMyProfile = async () => {
+    if (!currentUserId) return;
+    const data = await profileService.getUserProfile(currentUserId);
+
+    setMyProfile({
+      id: data.userId,
+      username: data.userName,
+      fullName: data.fullName,
+      bio: data.bio ?? "",
+      avatar:
+        data.avatarUrl ||
+        "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t",
+      followers: data.followersCount,
+      following: data.followingCount,
+    });
+  };
+
+  // Keep myProfile in sync when currentUserId becomes available
+  useEffect(() => {
+    if (currentUserId) {
+      fetchMyProfile();
+    }
+  }, [currentUserId]);
+
 
   // Load current user ID
   useEffect(() => {
@@ -115,28 +183,58 @@ export default function Profile() {
     }
   }, [profileId]);
 
-  useEffect(() => {
-    if (isCurrentUserIdLoaded && profileId) {
-      fetchProfileData();
-    }
-  }, [fetchProfileData, isCurrentUserIdLoaded, profileId]);
+  useFocusEffect(
+    useCallback(() => {
+      if (isCurrentUserIdLoaded && profileId) {
+        fetchProfileData();
+      }
+    }, [fetchProfileData, isCurrentUserIdLoaded, profileId])
+  );
+
 
   const handleFollowToggle = async () => {
     if (!user || !currentUserId) return;
+
     try {
       if (isFollowing) {
         await profileService.unfollowUser(currentUserId, user.id);
+
         setIsFollowing(false);
-        setUser(prev => prev ? { ...prev, followers: prev.followers - 1 } : null);
+
+        // 👇 user B (profile đang xem)
+        setUser(prev =>
+          prev ? { ...prev, followers: prev.followers - 1 } : prev
+        );
+
+        // 👇 user A (chính mình)
+        if (isMyProfile) {
+          setUser(prev =>
+            prev ? { ...prev, following: prev.following - 1 } : prev
+          );
+        }
+
       } else {
         await profileService.followUser(currentUserId, user.id);
+
         setIsFollowing(true);
-        setUser(prev => prev ? { ...prev, followers: prev.followers + 1 } : null);
+
+        setUser(prev =>
+          prev ? { ...prev, followers: prev.followers + 1 } : prev
+        );
+
+        if (isMyProfile) {
+          setUser(prev =>
+            prev ? { ...prev, following: prev.following + 1 } : prev
+          );
+        }
       }
+
     } catch (error) {
       console.error("Lỗi Follow/Unfollow:", error);
     }
   };
+
+
 
   const handleLogout = async () => {
     setMenuVisible(false);
@@ -160,57 +258,57 @@ export default function Profile() {
     </View>
   );
 
- const fetchFollowers = useCallback(async (): Promise<ModalUser[]> => {
-  if (!profileId) return [];
+  const fetchFollowers = useCallback(async (): Promise<ModalUser[]> => {
+    if (!profileId) return [];
 
-  try {
-    console.log("Fetching followers cho:", profileId);
+    try {
+      console.log("Fetching followers cho:", profileId);
 
-    // ❗ Không có .data → backend trả mảng UserResponse[]
-    const users: UserResponse[] = await profileService.getFollowers(profileId);
-    console.log("Followers API trả về:", users);
-    return users.map(u => ({
-      id: u.id,
-      username: u.userName,
-      avatar: {
-        uri: u.profileImage && u.profileImage.trim() !== ""
-          ? u.profileImage
-          : "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t"
-      },
-      isFollowing: false,
-    }));
-  } catch (error: any) {
-    console.error("Lỗi getFollowers:", error.message || error);
-    return [];
-  }
-}, [profileId]);
+      // ❗ Không có .data → backend trả mảng UserResponse[]
+      const users: UserResponse[] = await profileService.getFollowers(profileId);
+      console.log("Followers API trả về:", users);
+      return users.map(u => ({
+        id: u.id,
+        username: u.userName,
+        avatar: {
+          uri: u.profileImage && u.profileImage.trim() !== ""
+            ? u.profileImage
+            : "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t"
+        },
+        isFollowing: false,
+      }));
+    } catch (error: any) {
+      console.error("Lỗi getFollowers:", error.message || error);
+      return [];
+    }
+  }, [profileId]);
 
 
 
 
   const fetchFollowing = useCallback(async (): Promise<ModalUser[]> => {
-  if (!profileId) return [];
+    if (!profileId) return [];
 
-  try {
-    console.log("Fetching following cho:", profileId);
+    try {
+      console.log("Fetching following cho:", profileId);
 
-    const users: UserResponse[] = await profileService.getFollowing(profileId);
+      const users: UserResponse[] = await profileService.getFollowing(profileId);
 
-    return users.map(u => ({
-      id: u.id,
-      username: u.userName,
-      avatar: {
-        uri: u.profileImage && u.profileImage.trim() !== ""
-          ? u.profileImage
-          : "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t"
-      },
-      isFollowing: true,
-    }));
-  } catch (error: any) {
-    console.error("Lỗi getFollowing:", error?.message || error);
-    return [];
-  }
-}, [profileId]);
+      return users.map(u => ({
+        id: u.id,
+        username: u.userName,
+        avatar: {
+          uri: u.profileImage && u.profileImage.trim() !== ""
+            ? u.profileImage
+            : "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t"
+        },
+        isFollowing: true,
+      }));
+    } catch (error: any) {
+      console.error("Lỗi getFollowing:", error?.message || error);
+      return [];
+    }
+  }, [profileId]);
 
 
 
@@ -272,26 +370,26 @@ export default function Profile() {
               <Text style={styles.statLabel}>posts</Text>
             </View>
 
-           {/* Thay 2 TouchableOpacity này */}
-<TouchableOpacity 
-  onPress={() => currentUserId ? setShowFollowers(true) : null}
-  disabled={!currentUserId}
->
-  <View style={styles.statBlock}>
-    <Text style={styles.statNumber}>{user.followers}</Text>
-    <Text style={styles.statLabel}>followers</Text>
-  </View>
-</TouchableOpacity>
+            {/* Thay 2 TouchableOpacity này */}
+            <TouchableOpacity
+              onPress={() => currentUserId ? setShowFollowers(true) : null}
+              disabled={!currentUserId}
+            >
+              <View style={styles.statBlock}>
+                <Text style={styles.statNumber}>{user.followers}</Text>
+                <Text style={styles.statLabel}>followers</Text>
+              </View>
+            </TouchableOpacity>
 
-<TouchableOpacity 
-  onPress={() => currentUserId ? setShowFollowing(true) : null}
-  disabled={!currentUserId}
->
-  <View style={styles.statBlock}>
-    <Text style={styles.statNumber}>{user.following}</Text>
-    <Text style={styles.statLabel}>following</Text>
-  </View>
-</TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => currentUserId ? setShowFollowing(true) : null}
+              disabled={!currentUserId}
+            >
+              <View style={styles.statBlock}>
+                <Text style={styles.statNumber}>{user.following}</Text>
+                <Text style={styles.statLabel}>following</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -367,7 +465,9 @@ export default function Profile() {
         title="Followers"
         fetchUsers={fetchFollowers}
         currentUserId={currentUserId ?? ""}
-        
+        isMyProfile={isMyProfile}
+        isMyFollowersList={true}
+        onRemoveFollower={handleRemoveFollower}
       />
 
       <FollowerListModal
@@ -376,6 +476,9 @@ export default function Profile() {
         title="Following"
         fetchUsers={fetchFollowing}
         currentUserId={currentUserId ?? ""}
+        isMyProfile={isMyProfile}
+        isMyFollowersList={false}
+        onUnfollow={handleUnfollowFromFollowing}
       />
     </View>
   );

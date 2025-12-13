@@ -62,30 +62,51 @@ export default function FollowerListModal({
     }
   }, [visible, fetchUsers]);
 
-  const handleFollowToggle = async (targetId: string, currentlyFollowing: boolean) => {
-    setListUsers((prev) =>
-      prev.map((u) =>
-        u.id === targetId ? { ...u, isFollowing: !currentlyFollowing } : u
-      )
-    );
+  const handleFollowToggle = async (
+  targetId: string,
+  currentlyFollowing: boolean
+) => {
+  // ===== FOLLOWING MODAL (profile mình) =====
+  if (isMyProfile && !isMyFollowersList && currentlyFollowing) {
+    // Optimistic UI: remove ngay
+    setListUsers((prev) => prev.filter((u) => u.id !== targetId));
 
     try {
-      if (currentlyFollowing) {
-        await profileService.unfollowUser(currentUserId, targetId);
-        onUnfollow?.(targetId);
-      } else {
-        await profileService.followUser(currentUserId, targetId);
-      }
+      await profileService.unfollowUser(currentUserId, targetId);
+      onUnfollow?.(targetId); // update following count
     } catch (e) {
-      // revert nếu lỗi
-      setListUsers((prev) =>
-        prev.map((u) =>
-          u.id === targetId ? { ...u, isFollowing: currentlyFollowing } : u
-        )
-      );
-      Alert.alert("Lỗi", "Không thể thực hiện hành động.");
+      Alert.alert("Lỗi", "Không thể unfollow.");
+      // rollback
+      fetchUsers().then(setListUsers);
     }
-  };
+    return;
+  }
+
+  // ===== CÁC TRƯỜNG HỢP KHÁC =====
+  setListUsers((prev) =>
+    prev.map((u) =>
+      u.id === targetId ? { ...u, isFollowing: !currentlyFollowing } : u
+    )
+  );
+
+  try {
+    if (currentlyFollowing) {
+      await profileService.unfollowUser(currentUserId, targetId);
+      onUnfollow?.(targetId);
+    } else {
+      await profileService.followUser(currentUserId, targetId);
+    }
+  } catch (e) {
+    // rollback
+    setListUsers((prev) =>
+      prev.map((u) =>
+        u.id === targetId ? { ...u, isFollowing: currentlyFollowing } : u
+      )
+    );
+    Alert.alert("Lỗi", "Không thể thực hiện hành động.");
+  }
+};
+
 
   const handleRemove = (userId: string, username: string) => {
     Alert.alert(
@@ -129,56 +150,53 @@ export default function FollowerListModal({
           <Text style={styles.username}>{item.username}</Text>
         </TouchableOpacity>
 
-        {!isMe && (
-          <>
-            {isMyProfile ? (
-              // Profile chính mình
-              isMyFollowersList ? (
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => handleRemove(item.id, item.username)}
-                >
-                  <Text style={styles.removeText}>Remove</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[
-                    styles.followButton,
-                    item.isFollowing ? styles.followingButton : styles.activeFollowButton,
-                  ]}
-                  onPress={() => handleFollowToggle(item.id, item.isFollowing)}
-                >
-                  <Text
-                    style={[
-                      styles.followButtonText,
-                      item.isFollowing ? styles.followingText : styles.activeFollowText,
-                    ]}
-                  >
-                    {item.isFollowing ? "Following" : "Follow"}
-                  </Text>
-                </TouchableOpacity>
-              )
-            ) : (
-              // Profile người khác
-              <TouchableOpacity
-                style={[
-                  styles.followButton,
-                  item.isFollowing ? styles.followingButton : styles.activeFollowButton,
-                ]}
-                onPress={() => handleFollowToggle(item.id, item.isFollowing)}
-              >
-                <Text
-                  style={[
-                    styles.followButtonText,
-                    item.isFollowing ? styles.followingText : styles.activeFollowText,
-                  ]}
-                >
-                  {item.isFollowing ? "Following" : "Follow"}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </>
+        {!isMe && isMyProfile && isMyFollowersList && (
+          // ===== FOLLOWERS (profile mình) =====
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => handleRemove(item.id, item.username)}
+          >
+            <Text style={styles.removeText}>Remove</Text>
+          </TouchableOpacity>
         )}
+
+        {!isMe && isMyProfile && !isMyFollowersList && (
+          // ===== FOLLOWING (profile mình) =====
+          <TouchableOpacity
+            style={[styles.followButton, styles.followingButton]}
+            onPress={() => handleFollowToggle(item.id, true)}
+          >
+            <Text style={[styles.followButtonText, styles.followingText]}>
+              Unfollow
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {!isMe && !isMyProfile && (
+          // ===== PROFILE NGƯỜI KHÁC =====
+          <TouchableOpacity
+            style={[
+              styles.followButton,
+              item.isFollowing
+                ? styles.followingButton
+                : styles.activeFollowButton,
+            ]}
+            onPress={() => handleFollowToggle(item.id, item.isFollowing)}
+          >
+            <Text
+              style={[
+                styles.followButtonText,
+                item.isFollowing
+                  ? styles.followingText
+                  : styles.activeFollowText,
+              ]}
+            >
+              {item.isFollowing ? "Following" : "Follow"}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+
       </View>
     );
   };

@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Menu, MenuItem } from "react-native-material-menu";
 import FollowerListModal from "../../components/profile/FollowerListModal";
 import { profileService } from "../../services/profileService";
+import { eventBus } from "../../utils/eventBus";
 import { UserResponse } from "../../types/user";
 
 const screenWidth = Dimensions.get("window").width;
@@ -148,6 +149,19 @@ export default function UserProfileScreen() {
     if (!profileId) return [];
     try {
       const users: UserResponse[] = await profileService.getFollowers(profileId);
+
+      // Fetch current user's following list to compute isFollowing flag for each listed user
+      let myFollowingSet = new Set<string>();
+      if (currentUserId) {
+        try {
+          const myFollowing = await profileService.getFollowing(currentUserId);
+          myFollowingSet = new Set(myFollowing.map((m) => m.id));
+        } catch (e) {
+          // ignore and fallback to empty set
+          console.warn("Failed to load my following list for getFollowers:", e);
+        }
+      }
+
       return users.map((u) => ({
         id: u.id,
         username: u.userName,
@@ -157,18 +171,30 @@ export default function UserProfileScreen() {
               ? u.profileImage
               : "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t",
         },
-        isFollowing: false,
+        isFollowing: myFollowingSet.has(u.id),
       }));
     } catch (error: any) {
       console.error("Lỗi getFollowers:", error.message || error);
       return [];
     }
-  }, [profileId]);
+  }, [profileId, currentUserId]);
 
   const fetchFollowing = useCallback(async (): Promise<ModalUser[]> => {
     if (!profileId) return [];
     try {
       const users: UserResponse[] = await profileService.getFollowing(profileId);
+
+      // Determine if current user follows each listed user
+      let myFollowingSet = new Set<string>();
+      if (currentUserId) {
+        try {
+          const myFollowing = await profileService.getFollowing(currentUserId);
+          myFollowingSet = new Set(myFollowing.map((m) => m.id));
+        } catch (e) {
+          console.warn("Failed to load my following list for getFollowing:", e);
+        }
+      }
+
       return users.map((u) => ({
         id: u.id,
         username: u.userName,
@@ -178,13 +204,34 @@ export default function UserProfileScreen() {
               ? u.profileImage
               : "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t",
         },
-        isFollowing: true,
+        isFollowing: myFollowingSet.has(u.id),
       }));
     } catch (error: any) {
       console.error("Lỗi getFollowing:", error.message || error);
       return [];
     }
-  }, [profileId]);
+  }, [profileId, currentUserId]);
+
+  // When current user toggles follow in modals (lists of other users), update stored currentUser followingCount and emit event
+  const handleToggleFollowFromModal = async (targetUserId: string, nowFollowing: boolean) => {
+    const delta = nowFollowing ? 1 : -1;
+    try {
+      const currentUserString = await AsyncStorage.getItem("currentUser");
+      if (currentUserString) {
+        const cu = JSON.parse(currentUserString);
+        cu.followingCount = (cu.followingCount ?? 0) + delta;
+        await AsyncStorage.setItem("currentUser", JSON.stringify(cu));
+      }
+    } catch (e) {
+      console.warn("Failed to update stored currentUser followingCount:", e);
+    }
+
+    try {
+      eventBus.emit("currentUser:followingChanged", { delta, userId: targetUserId, nowFollowing });
+    } catch (e) {
+      // ignore
+    }
+  };
 
   const renderPost = ({ item }: { item: any }) => (
     <View style={styles.postItem}>
@@ -258,16 +305,26 @@ export default function UserProfileScreen() {
           <Text style={styles.fullName}>{user.fullName}</Text>
           {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
+          // ===== FOLLOW BUTTON =====
           {!isMyProfile && (
             <TouchableOpacity
-              style={[styles.followBtn, isFollowing ? styles.followingBtn : styles.followActive]}
+              style={[
+                styles.followBtn,
+                isFollowing ? styles.followingBtn : styles.followActive,
+              ]}
               onPress={handleFollowToggle}
             >
-              <Text style={[styles.followBtnText, isFollowing ? styles.followingText : styles.followText]}>
-                {isFollowing ? "Following" : "Follow"}
+              <Text
+                style={[
+                  styles.followBtnText,
+                  isFollowing ? styles.followingText : styles.followText,
+                ]}
+              >
+                {isFollowing ? "Unfollow" : "Follow"}
               </Text>
             </TouchableOpacity>
           )}
+
         </View>
 
         {/* Highlights / Story */}
@@ -315,14 +372,22 @@ export default function UserProfileScreen() {
         title="Followers"
         fetchUsers={fetchFollowers}
         currentUserId={currentUserId ?? ""}
+        isMyProfile={false}
+        isMyFollowersList={true}   // 👈 FOLLOWERS
+        
       />
+
       <FollowerListModal
         visible={showFollowing}
         onClose={() => setShowFollowing(false)}
         title="Following"
         fetchUsers={fetchFollowing}
         currentUserId={currentUserId ?? ""}
+        isMyProfile={false}
+        isMyFollowersList={false}  // 👈 FOLLOWING
       />
+
+
     </View>
   );
 }
