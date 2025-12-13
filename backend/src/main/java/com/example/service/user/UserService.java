@@ -2,10 +2,12 @@ package com.example.service.user;
 
 import com.example.dto.request.RegisterRequest;
 import com.example.dto.request.UpdateProfileRequest;
+import com.example.dto.response.story.StoryResponse;
 import com.example.dto.response.user.AuthResponse;
 import com.example.dto.response.user.PostProfileResponse;
 import com.example.dto.response.user.UserProfileResponse;
 import com.example.dto.response.user.UserResponse;
+import com.example.dto.response.user.UserSearchResponse;
 import com.example.entity.Follow;
 import com.example.entity.User;
 import com.example.mapper.UserMapper;
@@ -14,6 +16,8 @@ import com.example.repository.post.PostRepository;
 import com.example.repository.user.UserRepository;
 import com.example.service.FileService;
 import com.example.service.jwt.JwtService;
+import com.example.service.story.StoryService;
+import com.example.utils.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -46,6 +50,7 @@ public class UserService {
     private final PostRepository postRepository;
     private final FollowRepository followRepository;
     private final FileService fileService;
+    private final StoryService storyService;
 
     public AuthResponse login(String email, String password, HttpServletResponse response) {
         Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(email, password);
@@ -270,12 +275,24 @@ public class UserService {
         return mapper.toUserProfileResponse(user, isFollowing, followersCount, followingCount, posts);
     }
 
-    public List<UserResponse> searchChatUsers(String name){
-        List<User> lists = userRepository.searchChatUsers(name);
-        if(lists.isEmpty()){
-            return Collections.emptyList();
-        }
-        return lists.stream().map(mapper::toUserResponse).collect(Collectors.toList());
+    public List<UserSearchResponse> searchUsers(String name) {
+        List<User> users = userRepository.searchChatUsers(name);
+        String currentUserId =  getIdByEmail(JwtUtil.getCurrentUserEmail());
+
+        return users.stream()
+                .filter(user -> !user.getId().equals(currentUserId))
+                .map(user -> {
+                    List<StoryResponse> stories = storyService.getMyStories(user.getId());
+                    return UserSearchResponse.builder()
+                            .id(user.getId())
+                            .userName(user.getUserName())
+                            .fullName(user.getFullName())
+                            .profileImage(user.getProfileImage())
+                            .hasStory(!stories.isEmpty())
+                            .stories(stories)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 
 }

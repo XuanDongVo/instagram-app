@@ -30,3 +30,8 @@ export interface PostImages {
   id: string;
   imageUrl: string;
 }
+
+export interface PostGridProps {
+  posts: PostResponse[];
+  onPostPress?: (post: PostResponse) => void;
+}
