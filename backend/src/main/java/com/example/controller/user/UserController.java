@@ -4,6 +4,7 @@ import com.example.dto.ApiResponse;
 import com.example.dto.request.UpdateProfileRequest;
 import com.example.dto.response.user.UserProfileResponse;
 import com.example.dto.response.user.UserResponse;
+import com.example.dto.response.user.UserSearchResponse;
 import com.example.entity.User;
 import com.example.service.user.UserService;
 import lombok.RequiredArgsConstructor;
@@ -162,7 +163,7 @@ public class UserController {
 
     @GetMapping("search")
     public ResponseEntity<ApiResponse> searchUsers(@RequestParam("name") String name){
-        List<UserResponse> userResponses = userService.searchChatUsers(name);
+        List<UserSearchResponse> userResponses = userService.searchUsers(name);
         if(userResponses.isEmpty()){
             return ResponseEntity.ok(ApiResponse.error(HttpStatus.NOT_FOUND.value(), "Không tìm thấy user"));
         }else {
