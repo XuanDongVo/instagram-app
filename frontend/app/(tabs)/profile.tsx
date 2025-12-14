@@ -399,9 +399,13 @@ export default function Profile() {
           {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
           {isMyProfile ? (
-            <TouchableOpacity style={styles.editBtn}>
+            <TouchableOpacity
+              style={styles.editBtn}
+              onPress={() => router.push("/edit_profile")}
+            >
               <Text style={styles.editBtnText}>Edit Profile</Text>
             </TouchableOpacity>
+
           ) : (
             <TouchableOpacity
               style={[styles.followBtn, isFollowing ? styles.followingBtn : styles.followActive]}

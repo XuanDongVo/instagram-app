@@ -77,10 +77,10 @@ export interface UserProfileResponse {
 }
 
 export type UpdateProfileRequest = {
-  username?: string;
+  userName?: string;
   fullName?: string;
   bio?: string;
-  // ... các trường có thể cập nhật
+  profileImage?:string
 };
 
 

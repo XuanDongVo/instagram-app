@@ -5,7 +5,10 @@ import {
   UserResponse,
 } from "../types/user";
 import { AxiosRequestConfig } from "axios";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
 const API_URL = "/v1/users";
 
@@ -25,6 +28,7 @@ const getAuthConfig = async (): Promise<AxiosRequestConfig> => {
 
 const getUserProfile = async (id: string): Promise<UserProfileResponse> => {
   const config = await getAuthConfig();
+  console.log( `${API_URL}/profile?id=${id}`)
   const res = await ApiService.get<ApiResponse<UserProfileResponse>>(
     `${API_URL}/profile?id=${id}`,
     config
@@ -71,6 +75,8 @@ const uploadProfileImage = async (
     throw new Error(res.data.message || "Upload ảnh thất bại");
   return res.data.data;
 };
+
+
 
 // ========================== FOLLOW =============================
 
@@ -155,7 +161,6 @@ const removeFollower = async (currentUserId: string, followerId: string) => {
 
   return res.data; // trả về profile đã cập nhật
 };
-
 
 // ========================== EXPORT =============================
 

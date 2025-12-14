@@ -42,6 +42,7 @@ export default function FollowerListModal({
   isMyProfile = false,
   onRemoveFollower,
   onUnfollow,
+  
 }: FollowerListModalProps) {
   const [listUsers, setListUsers] = useState<ModalUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -133,6 +134,14 @@ export default function FollowerListModal({
 
   const renderUser = ({ item }: { item: ModalUser }) => {
     const isMe = item.id === currentUserId;
+    console.log("FollowerListModal.renderUser", {
+      itemId: item.id,
+      itemIsFollowing: item.isFollowing,
+      currentUserId,
+      isMe,
+      isMyProfile,
+      isMyFollowersList,
+    });
 
     return (
       <View style={styles.userRow}>
@@ -177,18 +186,14 @@ export default function FollowerListModal({
           <TouchableOpacity
             style={[
               styles.followButton,
-              item.isFollowing
-                ? styles.followingButton
-                : styles.activeFollowButton,
+              item.isFollowing ? styles.followingButton : styles.activeFollowButton,
             ]}
-            onPress={() => handleFollowToggle(item.id, item.isFollowing)}
+            onPress={() => handleFollowToggle(item.id, !!item.isFollowing)}
           >
             <Text
               style={[
                 styles.followButtonText,
-                item.isFollowing
-                  ? styles.followingText
-                  : styles.activeFollowText,
+                item.isFollowing ? styles.followingText : styles.activeFollowText,
               ]}
             >
               {item.isFollowing ? "Following" : "Follow"}
