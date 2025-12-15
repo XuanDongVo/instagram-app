@@ -37,7 +37,6 @@ export default function UserProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"grid" | "tagged">("grid");
-  const [menuVisible, setMenuVisible] = useState(false);
 
   const profileId = userIdParam;
 
@@ -79,7 +78,7 @@ export default function UserProfileScreen() {
         bio: profileData.bio ?? "",
         avatar:
           profileData.avatarUrl ||
-          "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t",
+          "https://velle.vn/wp-content/uploads/2025/04/avatar-mac-dinh-4-2.jpg",
         followers: profileData.followersCount,
         following: profileData.followingCount,
       });
@@ -164,7 +163,7 @@ export default function UserProfileScreen() {
           uri:
             u.profileImage && u.profileImage.trim() !== ""
               ? u.profileImage
-              : "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t",
+              : "https://velle.vn/wp-content/uploads/2025/04/avatar-mac-dinh-4-2.jpg",
         },
         isFollowing: myFollowingSet.has(u.id),
       }));
@@ -210,7 +209,7 @@ export default function UserProfileScreen() {
           uri:
             u.profileImage && u.profileImage.trim() !== ""
               ? u.profileImage
-              : "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg?nii=t",
+              : "https://velle.vn/wp-content/uploads/2025/04/avatar-mac-dinh-4-2.jpg",
         },
         isFollowing: myFollowingSet.has(u.id),
       }));
