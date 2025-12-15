@@ -20,25 +20,9 @@ import FollowerListModal from "../../components/profile/FollowerListModal";
 import { profileService } from "../../services/profileService";
 import { UserResponse } from "../../types/user";
 import { Ionicons } from "@expo/vector-icons";
-
+import { ModalUser, UserProfileState } from "../../types/user";
 const screenWidth = Dimensions.get("window").width;
 
-interface ModalUser {
-  id: string;
-  username: string;
-  avatar: any;
-  isFollowing: boolean;
-}
-
-interface UserProfileState {
-  id: string;
-  username: string;
-  fullName: string;
-  bio: string;
-  avatar: string;
-  followers: number;
-  following: number;
-}
 
 export default function Profile() {
   const route = useRoute();

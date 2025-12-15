@@ -12,25 +12,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { profileService } from "../../services/profileService";
+import { ModalUser, FollowerListModalProps } from "../../types/user";
 
-interface ModalUser {
-  id: string;
-  username: string;
-  avatar: any; // uri hoặc require
-  isFollowing: boolean;
-}
-
-interface FollowerListModalProps {
-  visible: boolean;
-  onClose: () => void;
-  title: string;
-  fetchUsers: () => Promise<ModalUser[]>;
-  currentUserId: string;
-  isMyFollowersList?: boolean; // true = followers, false = following
-  isMyProfile?: boolean; // true = profile của chính mình
-  onRemoveFollower?: (userId: string) => Promise<void>;
-  onUnfollow?: (userId: string) => Promise<void>;
-}
 
 export default function FollowerListModal({
   visible,

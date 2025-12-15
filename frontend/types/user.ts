@@ -92,3 +92,32 @@ export interface UserSearchResponse {
   hasStory: boolean;
   stories: StoryResponse[];
 }
+
+export interface ModalUser {
+  id: string;
+  username: string;
+  avatar: any; // uri hoặc require
+  isFollowing: boolean;
+}
+
+export interface FollowerListModalProps {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  fetchUsers: () => Promise<ModalUser[]>;
+  currentUserId: string;
+  isMyFollowersList?: boolean; // true = followers, false = following
+  isMyProfile?: boolean; // true = profile của chính mình
+  onRemoveFollower?: (userId: string) => Promise<void>;
+  onUnfollow?: (userId: string) => Promise<void>;
+}
+
+export interface UserProfileState {
+  id: string;
+  username: string;
+  fullName: string;
+  bio: string;
+  avatar: string;
+  followers: number;
+  following: number;
+}

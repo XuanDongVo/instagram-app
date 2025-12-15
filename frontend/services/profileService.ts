@@ -5,10 +5,7 @@ import {
   UserResponse,
 } from "../types/user";
 import { AxiosRequestConfig } from "axios";
-import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 
 const API_URL = "/v1/users";
 

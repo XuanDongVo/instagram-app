@@ -175,14 +175,7 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi chung khi xử lý ảnh: " + e.getMessage(), e);
         }
     }
-    @Transactional
-    public void updateAvatarUrl(String userId, String imageUrl) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
 
-        user.setProfileImage(imageUrl);
-        userRepository.save(user);
-    }
 
 
 
@@ -249,7 +242,6 @@ public class UserService {
         user.setFullName(request.getFullName());
         user.setUserName(request.getUserName());
         user.setBio(request.getBio());
-        user.setProfileImage(request.getProfileImage());
 
         return mapper.toUserResponse(userRepository.save(user));
     }

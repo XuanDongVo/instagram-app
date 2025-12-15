@@ -14,10 +14,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { profileService } from "@/services/profileService";
-import axios from "axios";
 
 const DEFAULT_AVATAR =
-  "https://i.pinimg.com/236x/e9/e0/7d/e9e07de22e3ef161bf92d1bcf241e4d0.jpg";
+  "https://velle.vn/wp-content/uploads/2025/04/avatar-mac-dinh-4-2.jpg";
 
 const EditProfileScreen: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
@@ -25,9 +24,13 @@ const EditProfileScreen: React.FC = () => {
   const [fullName, setFullName] = useState("");
   const [userName, setUsername] = useState("");
   const [bio, setBio] = useState("");
-  const [profileImage, setAvatar] = useState(DEFAULT_AVATAR);
+  const [profileImagePreview, setAvatarPreview] = useState(DEFAULT_AVATAR);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+
 
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
 
   // ================= LOAD PROFILE =================
   useEffect(() => {
@@ -44,7 +47,9 @@ const EditProfileScreen: React.FC = () => {
         setFullName(profile.fullName || "");
         setUsername(profile.userName || "");
         setBio(profile.bio ?? "");
-        setAvatar(profile.avatarUrl || DEFAULT_AVATAR);
+        setAvatarPreview(profile.avatarUrl || DEFAULT_AVATAR);
+        setProfileImageUrl(profile.avatarUrl || null);
+
       } catch (e) {
         console.error("Load profile error:", e);
         Alert.alert("Error", "Không tải được profile");
@@ -70,7 +75,7 @@ const EditProfileScreen: React.FC = () => {
         fullName,
         userName,
         bio,
-        profileImage,
+        profileImage: profileImageUrl || undefined,
       });
 
       Alert.alert("Success", "Cập nhật hồ sơ thành công");
@@ -84,65 +89,44 @@ const EditProfileScreen: React.FC = () => {
   };
 
   // ================= CHANGE AVATAR =================
- const handleChangePhoto = async (
-  userId: string,
-  setAvatar: (uri: string) => void,
-  DEFAULT_AVATAR: string
-) => {
-  try {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission denied", "Bạn cần cấp quyền truy cập ảnh");
-      return;
+  const handleChangePhoto = async () => {
+    if (!userId) return;
+
+    try {
+      setUploadingAvatar(true);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+
+      // preview NGAY
+      setAvatarPreview(asset.uri);
+
+      // upload
+      const uploadedUrl = await profileService.uploadProfileImage(userId, {
+        uri: asset.uri.startsWith("file://")
+          ? asset.uri
+          : "file://" + asset.uri,
+        name: "avatar.jpg",
+        type: "image/jpeg",
+      });
+
+      // 🔥 QUAN TRỌNG
+      setProfileImageUrl(uploadedUrl);
+      setAvatarPreview(`${uploadedUrl}?t=${Date.now()}`);
+    } catch (e) {
+      Alert.alert("Error", "Upload ảnh thất bại");
+    } finally {
+      setUploadingAvatar(false);
     }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.6,
-    });
-
-    if (result.canceled || !result.assets || result.assets.length === 0) return;
-
-    const asset = result.assets[0];
-    setAvatar(asset.uri);
-
-    const token = await AsyncStorage.getItem('accessToken');
-    if (!token) throw new Error("Không tìm thấy access token");
-
-    const formData = new FormData();
-    formData.append('file', {
-      uri: asset.uri.startsWith('file://') ? asset.uri : 'file://' + asset.uri,
-      name: 'avatar.jpg',
-      type: 'image/jpeg',
-    } as any);
-    formData.append('id', userId);
-
-    const res = await axios.post(
-      'http://10.0.2.2:8080/api/v1/users/uploadProfileImage',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    const uploadedUrl = res.data.data;
-
-    // 𝗖𝗮̣̂𝗽 𝗻𝗵𝗮̣̂𝘁 avatar trong profile
-    await profileService.updateProfile(userId, { profileImage: uploadedUrl });
-
-    setAvatar(`${uploadedUrl}?t=${Date.now()}`);
-  } catch (e: any) {
-    console.error("Upload avatar error:", e.response?.data || e.message || e);
-    Alert.alert("Error", e.message || "Upload ảnh thất bại");
-    setAvatar(DEFAULT_AVATAR);
-  }
-};
-
+  };
 
 
 
@@ -157,20 +141,33 @@ const EditProfileScreen: React.FC = () => {
 
         <Text style={styles.headerTitle}>Edit Profile</Text>
 
-        <TouchableOpacity onPress={handleSave} disabled={loading}>
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={loading || uploadingAvatar}
+        >
           <Text style={[styles.headerButton, styles.doneButton]}>
-            {loading ? "Saving..." : "Done"}
+            {uploadingAvatar
+              ? "Uploading..."
+              : loading
+                ? "Saving..."
+                : "Done"}
           </Text>
+
         </TouchableOpacity>
       </View>
 
       <ScrollView>
         {/* AVATAR */}
         <View style={styles.profilePictureSection}>
-          <Image source={{ uri: profileImage }} style={styles.profileImage} />
-          <TouchableOpacity onPress={() => handleChangePhoto(userId!, setAvatar, DEFAULT_AVATAR)}>
+          <Image
+            source={{ uri: profileImagePreview }}
+            style={styles.profileImage}
+          />
+
+          <TouchableOpacity onPress={handleChangePhoto}>
             <Text style={styles.changePhotoText}>Change Profile Photo</Text>
           </TouchableOpacity>
+
         </View>
 
         {/* EDITABLE FIELDS */}

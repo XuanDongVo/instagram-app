@@ -17,25 +17,10 @@ import FollowerListModal from "../../components/profile/FollowerListModal";
 import { profileService } from "../../services/profileService";
 import { eventBus } from "../../utils/eventBus";
 import { UserResponse } from "../../types/user";
-
+import { ModalUser,  UserProfileState} from "../../types/user";
 const screenWidth = Dimensions.get("window").width;
 
-interface ModalUser {
-  id: string;
-  username: string;
-  avatar: any;
-  isFollowing: boolean;
-}
 
-interface UserProfileState {
-  id: string;
-  username: string;
-  fullName: string;
-  bio: string;
-  avatar: string;
-  followers: number;
-  following: number;
-}
 
 export default function UserProfileScreen() {
   const route = useRoute();
