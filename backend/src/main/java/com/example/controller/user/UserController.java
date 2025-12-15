@@ -9,6 +9,7 @@ import com.example.entity.User;
 import com.example.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,7 +17,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -96,6 +104,7 @@ public class UserController {
         }
     }
 
+
     @PostMapping("/follow")
     public ResponseEntity<ApiResponse> followUser(
             @RequestParam("id") String id,
@@ -171,4 +180,42 @@ public class UserController {
         }
     }
 
+    // THÊM VÀO UserController.java
+
+    @DeleteMapping("/removeFollowers")
+    public ResponseEntity<ApiResponse> removeFollower(
+            @RequestParam("id") String currentUserId,
+            @RequestParam("followerId") String followerId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        // Xác thực: chỉ được xóa follower của chính mình
+        String authenticatedUserId = userService.getIdByEmail(jwt.getSubject());
+        if (!currentUserId.equals(authenticatedUserId)) {
+            return ResponseEntity.ok(ApiResponse.error(
+                    HttpStatus.FORBIDDEN.value(),
+                    "Bạn chỉ có thể xóa người theo dõi khỏi hồ sơ của chính mình"
+            ));
+        }
+
+        try {
+            // Thực hiện xóa follower
+            userService.removeFollower(currentUserId, followerId);
+
+            // Lấy lại profile mới nhất (followersCount đã giảm)
+            UserProfileResponse updatedProfile = userService.getUserProfile(currentUserId, currentUserId);
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    HttpStatus.OK.value(),
+                    "Đã xóa người theo dõi thành công",
+                    updatedProfile
+            ));
+
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(ApiResponse.error(e.getStatusCode().value(), e.getReason()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Lỗi server khi xóa người theo dõi"));
+        }
+    }
 }

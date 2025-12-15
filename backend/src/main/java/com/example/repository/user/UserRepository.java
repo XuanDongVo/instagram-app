@@ -16,6 +16,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     public Optional<User> findById(String id);
     Optional<User> findByUserName(String userName);
 
+    Optional<UserProfileResponse>  findUserProfileById(String id);
+
 
 //    @Query("""
 //    SELECT DISTINCT fof FROM User u
