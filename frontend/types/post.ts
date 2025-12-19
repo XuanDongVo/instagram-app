@@ -1,6 +1,5 @@
 import { UserResponse } from "./user";
 
-
 // ==================== LIKE ====================
 export interface LikeRequest {
   postId: string;
@@ -26,8 +25,13 @@ export interface PostResponse {
   user: UserResponse;
 }
 
+export interface PostRequest {
+  content: string;
+  images: string[];
+  userId: string;
+}
+
 export interface PostImages {
-  id: string;
   imageUrl: string;
 }
 
