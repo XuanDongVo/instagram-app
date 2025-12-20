@@ -1,11 +1,6 @@
 import { api } from "./api";
 import { PostRequest } from "@/types/post";
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+import { ApiResponse } from "./api";
 
 export class PostService {
   static async createPost(data: PostRequest): Promise<ApiResponse<any>> {

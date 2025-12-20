@@ -18,8 +18,6 @@ import { ImagePickerAsset } from "expo-image-picker";
 import UploadService from "@/services/uploadService";
 import PostService from "@/services/postService";
 
-const { width } = Dimensions.get("window");
-// const IMAGE_SIZE = (width - 60) / 3;
 const IMAGE_SIZE = 300;
 
 interface SelectedMediaAsset {
@@ -114,8 +112,8 @@ export default function CreatePost() {
 
       const postData = {
         content: caption.trim(),
-        user_Id: userId,
-        postImages: uploadedUrls,
+        userId: userId,
+        images: uploadedUrls,
       };
       const response = await PostService.createPost(postData);
       console.log("Đăng bài thành công:", response);
