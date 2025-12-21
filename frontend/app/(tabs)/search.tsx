@@ -17,7 +17,6 @@ import { PostResponse } from '@/types/post';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { userService } from '@/services/userService';
-import { api } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
 import { UserSearchResponse } from '@/types/user';
 import { StoryViewer } from '@/components/story/StoryViewer';

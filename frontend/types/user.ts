@@ -68,3 +68,18 @@ export interface UserSearchResponse {
   hasStory: boolean;
   stories: StoryResponse[];
 }
+
+
+export interface User {
+  id: string;
+  userName: string;
+  fullName: string;
+  email: string;
+  profileImage?: string;
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  loading: boolean;
+}
