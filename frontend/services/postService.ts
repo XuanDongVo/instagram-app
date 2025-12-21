@@ -1,5 +1,5 @@
 import { api } from "./api";
-import { PostRequest } from "@/types/post";
+import { PostRequest, PostResponse } from "@/types/post";
 import { ApiResponse } from "./api";
 
 export class PostService {
@@ -12,6 +12,20 @@ export class PostService {
         "Lỗi khi lưu bài viết:",
         error?.response?.data || error.message
       );
+      throw error;
+    }
+  }
+
+  static async getPost(userId: string): Promise<ApiResponse<PostResponse[]>> {
+    try {
+      const response = await api.get<ApiResponse<PostResponse[]>>("/v1/post", {
+        params: {
+          id: userId,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error(error?.response?.data || error.message);
       throw error;
     }
   }

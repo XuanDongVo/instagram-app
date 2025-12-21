@@ -112,8 +112,8 @@ export default function CreatePost() {
 
       const postData = {
         content: caption.trim(),
-        userId: userId,
-        images: uploadedUrls,
+        user_Id: userId,
+        postImages: uploadedUrls,
       };
       const response = await PostService.createPost(postData);
       console.log("Đăng bài thành công:", response);

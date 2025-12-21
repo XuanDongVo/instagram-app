@@ -27,12 +27,13 @@ export interface PostResponse {
 
 export interface PostRequest {
   content: string;
-  images: string[];
-  userId: string;
+  postImages: string[];
+  user_Id: string;
 }
 
 export interface PostImages {
-  imageUrl: string;
+  id: string;
+  url_image?: string;
 }
 
 export interface PostGridProps {
