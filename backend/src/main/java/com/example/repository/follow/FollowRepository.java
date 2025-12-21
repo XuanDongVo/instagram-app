@@ -28,4 +28,6 @@ public interface FollowRepository extends JpaRepository<Follow, String> {
     @Modifying
     @Query("DELETE FROM Follow f WHERE f.user.id = :userId AND f.follower.id = :followerId")
     void deleteByUserIdAndFollowerId(@Param("userId") String userId, @Param("followerId") String followerId);
+
+    boolean existsByUserIdAndFollowerId(@Param("userId") String userId, @Param("followerId") String followerId);
 }

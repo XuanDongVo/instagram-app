@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -54,7 +55,7 @@ public class PostMapper {
         }
         Post post = new Post();
         post.setContent(request.getContent());
-        post.setCreateAt(request.getCreate_at());
+        post.setCreateAt(LocalDateTime.now());
         // set list img
         List<PostImages> images = new ArrayList<>();
         for (String url: request.getPostImages()){

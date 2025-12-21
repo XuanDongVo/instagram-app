@@ -176,6 +176,9 @@ public class UserService {
         }
     }
 
+
+
+
     @Transactional
     public void follow(String currentUserId, String targetUserId) {
         if (targetUserId.equals(currentUserId)) {
@@ -239,7 +242,6 @@ public class UserService {
         user.setFullName(request.getFullName());
         user.setUserName(request.getUserName());
         user.setBio(request.getBio());
-        user.setProfileImage(request.getProfileImage());
 
         return mapper.toUserResponse(userRepository.save(user));
     }
@@ -295,4 +297,19 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public void removeFollower(String currentUserId, String followerId) {
+        if (currentUserId.equals(followerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể tự xóa chính mình khỏi danh sách followers");
+        }
+
+        // Kiểm tra xem followerId có thực sự đang follow currentUserId không
+        long followCount = followRepository.countByUserIdAndFollowerId(currentUserId, followerId);
+        if (followCount == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Người này không theo dõi bạn");
+        }
+
+        // XÓA quan hệ follow
+        followRepository.deleteByUserIdAndFollowerId(currentUserId, followerId);
+    }
 }

@@ -59,6 +59,30 @@ export interface CurrentUser {
   avatar?: string;
 }
 
+// Sửa interface UserProfileResponse để khớp với JSON mới
+export interface UserProfileResponse {
+    userId: string;       // Tên trường mới
+    userName: string;     // Tên trường mới
+    fullName: string;
+    avatarUrl: string | null; // Tên trường mới
+    bio: string | null;
+    followersCount: number;
+    followingCount: number;
+    postCount: number;
+    followers: any[];
+    followings: any[];
+    posts: any[];
+    following: boolean; // Tên trường thực tế là 'following'
+    me: boolean;
+}
+
+export type UpdateProfileRequest = {
+  userName?: string;
+  fullName?: string;
+  bio?: string;
+  profileImage?:string
+};
+
 
 export interface UserSearchResponse {
   id: string;
@@ -67,6 +91,35 @@ export interface UserSearchResponse {
   profileImage?: string;
   hasStory: boolean;
   stories: StoryResponse[];
+}
+
+export interface ModalUser {
+  id: string;
+  username: string;
+  avatar: any; // uri hoặc require
+  isFollowing: boolean;
+}
+
+export interface FollowerListModalProps {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  fetchUsers: () => Promise<ModalUser[]>;
+  currentUserId: string;
+  isMyFollowersList?: boolean; // true = followers, false = following
+  isMyProfile?: boolean; // true = profile của chính mình
+  onRemoveFollower?: (userId: string) => Promise<void>;
+  onUnfollow?: (userId: string) => Promise<void>;
+}
+
+export interface UserProfileState {
+  id: string;
+  username: string;
+  fullName: string;
+  bio: string;
+  avatar: string;
+  followers: number;
+  following: number;
 }
 
 
