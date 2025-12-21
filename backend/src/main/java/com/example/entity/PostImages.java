@@ -1,6 +1,7 @@
 package com.example.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nimbusds.jose.shaded.gson.annotations.SerializedName;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,6 +27,7 @@ public class PostImages {
     private String id;
     @SerializedName("imageUrls")
     @Column(name = "url_image")
+    @JsonProperty("urlImage")
     private String urlImage;
     @JsonIgnore
     @ManyToOne

@@ -13,7 +13,6 @@ import java.util.List;
 @Builder
 public class UpPostRequest {
     private String content;
-    private LocalDateTime create_at;
     private List<String> postImages;
     private String user_Id;
 }

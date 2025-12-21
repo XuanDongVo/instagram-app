@@ -27,7 +27,6 @@ public class PostService {
     private final SavedPostDetailRepository savedPostDetailRepository;
 
     public List<PostResponse> getAllPosts(String currentId) {
-//        List<Post> post = repo.findAll(Sort.by(Sort.Direction.DESC, "createAt"));
         List<Post> post = repo.findByUser_IdNot(currentId, Sort.by(Sort.Direction.DESC, "createAt"));
         List<PostResponse> rs = new ArrayList<>();
         for (Post p : post) {
