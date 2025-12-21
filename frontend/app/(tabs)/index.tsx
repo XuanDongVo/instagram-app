@@ -21,25 +21,7 @@ import { StoryBar } from "@/components/story/StoryBar";
 import postService from "@/services/postService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PostCard from "@/components/post/PostCard";
-
-type PostImage = { id: string; urlImage?: string; localSource?: any };
-type UserSummary = {
-  id: string;
-  userName: string;
-  fullName: string;
-  profileImage?: string;
-};
-type Post = {
-  id: string;
-  content: string;
-  createAt: string;
-  images: PostImage[];
-  comments: number;
-  likes: number;
-  liked: boolean;
-  savedPost: boolean;
-  user: UserSummary;
-};
+import { PostResponse } from "@/types";
 
 function HeaderBar() {
   const router = useRouter();
@@ -59,7 +41,7 @@ function HeaderBar() {
 
 export default function HomeScreen() {
   const scheme = useColorScheme() ?? "light";
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -68,7 +50,6 @@ export default function HomeScreen() {
       const userString = await AsyncStorage.getItem("currentUser");
       const user = userString ? JSON.parse(userString) : null;
       const currentUserId = user?.id || user?.userId;
-
       const response = await postService.getPost(currentUserId);
       if (response && Array.isArray(response.data)) {
         setPosts(response.data);

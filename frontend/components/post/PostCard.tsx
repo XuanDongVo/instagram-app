@@ -1,3 +1,4 @@
+import { PostResponse } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useCallback, useState } from "react";
@@ -12,26 +13,7 @@ import {
 } from "react-native";
 import CommentBottomSheet from "../../components/comments/CommentBottomSheet";
 
-type PostImage = { id: string; urlImage?: string; localSource?: any };
-type UserSummary = {
-  id: string;
-  userName: string;
-  fullName: string;
-  profileImage?: string;
-};
-type Post = {
-  id: string;
-  content: string;
-  createAt: string;
-  images: PostImage[];
-  comments: number;
-  likes: number;
-  liked: boolean;
-  savedPost: boolean;
-  user: UserSummary;
-};
-
-export default function PostCard({ post }: { post: Post }) {
+export default function PostCard({ post }: { post: PostResponse }) {
   const CURRENT_USER_ID =
     ((process.env as any).EXPO_PUBLIC_USER_ID as string) || "";
   const [liked, setLiked] = useState(post.liked);
@@ -39,7 +21,6 @@ export default function PostCard({ post }: { post: Post }) {
   const [likeCount, setLikeCount] = useState(post.likes);
   const [showComments, setShowComments] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
   const toggleLike = useCallback(() => {
     setLiked((v) => {
       const next = !v;
@@ -64,7 +45,7 @@ export default function PostCard({ post }: { post: Post }) {
       {post.images && post.images.length > 0 && (
         <View style={styles.cardImage}>
           <FlatList
-            data={post.images}
+            data={post.images.flat()}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}

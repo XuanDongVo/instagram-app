@@ -33,7 +33,7 @@ export interface PostRequest {
 
 export interface PostImages {
   id: string;
-  url_image?: string;
+  urlImage?: string;
 }
 
 export interface PostGridProps {
