@@ -16,7 +16,7 @@ export const useAuth = () => {
     try {
       const [accessToken, userStr] = await Promise.all([
         AsyncStorage.getItem('accessToken'),
-        AsyncStorage.getItem('user'),
+        AsyncStorage.getItem('currentUser'),
       ]);
 
       const isAuthenticated = !!(accessToken && accessToken !== 'null' && accessToken.trim() !== '');
@@ -42,7 +42,7 @@ export const useAuth = () => {
     try {
       await Promise.all([
         ApiService.setTokens(accessToken, refreshToken),
-        AsyncStorage.setItem('user', JSON.stringify(user)),
+        AsyncStorage.setItem('currentUser', JSON.stringify(user)),
       ]);
 
       setAuthState({
@@ -80,7 +80,7 @@ export const useAuth = () => {
   // Update user data
   const updateUser = useCallback(async (updatedUser: User) => {
     try {
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      await AsyncStorage.setItem('currentUser', JSON.stringify(updatedUser));
       setAuthState(prev => ({
         ...prev,
         user: updatedUser,
