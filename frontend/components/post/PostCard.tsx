@@ -12,10 +12,24 @@ import {
   StyleSheet,
 } from "react-native";
 import CommentBottomSheet from "../../components/comments/CommentBottomSheet";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function PostCard({ post }: { post: PostResponse }) {
-  const CURRENT_USER_ID =
-    ((process.env as any).EXPO_PUBLIC_USER_ID as string) || "";
+  const [user, setUser] = useState<any>(null);
+  const CURRENT_USER_ID = user?.id || user?.userId;
+
+  // Load user from AsyncStorage
+  useState(() => {
+    (async () => {
+      try {
+        const userString = await AsyncStorage.getItem("currentUser");
+        setUser(userString ? JSON.parse(userString) : null);
+      } catch (e) {
+        setUser(null);
+      }
+    })();
+  });
+  
   const [liked, setLiked] = useState(post.liked);
   const [saved, setSaved] = useState(post.savedPost);
   const [likeCount, setLikeCount] = useState(post.likes);

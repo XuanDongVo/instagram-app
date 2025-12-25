@@ -27,3 +27,29 @@ export interface ModifyCommentRequest {
   commentId: string;
   content: string;
 }
+export interface CommentInputProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  onSubmit: (content: string, parentCommentId?: string) => void;
+  replyingTo: Comment | null;
+  onCancelReply: () => void;
+  placeholder?: string;
+}
+
+export interface CommentItemProps {
+  comment: Comment;
+  onReply: (comment: Comment) => void;
+  onDelete: (commentId: string) => void;
+  onToggleLike: (commentId: string) => void;
+  currentUserId: string;
+  isReply?: boolean;
+  parentComment?: Comment;
+}
+
+export interface CommentBottomSheetProps {
+  visible: boolean;
+  onClose: () => void;
+  postId: string;
+  userId: string;
+  initialComments?: Comment[];
+}

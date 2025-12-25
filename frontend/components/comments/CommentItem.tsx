@@ -8,18 +8,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Comment } from '../../types/comment';
 import { Utils } from '@/utils/Utils';
+import { CommentItemProps } from '../../types/comment';
 
-interface CommentItemProps {
-  comment: Comment;
-  onReply: (comment: Comment) => void;
-  onDelete: (commentId: string) => void;
-  onToggleLike: (commentId: string) => void;
-  currentUserId: string;
-  isReply?: boolean;
-  parentComment?: Comment;
-}
 
 export default function CommentItem({
   comment,
@@ -52,6 +43,29 @@ export default function CommentItem({
 
   const isOwnComment = comment.sender.id === currentUserId;
 
+  // Hiện nút xóa khi long press, không hiện trực tiếp
+  const [showDelete, setShowDelete] = useState(false);
+
+  const handleLongPress = () => {
+    if (isOwnComment) {
+      Alert.alert(
+        'Xóa bình luận',
+        'Bạn có chắc chắn muốn xóa bình luận này?',
+        [
+          { text: 'Hủy', style: 'cancel', onPress: () => setShowDelete(false) },
+          {
+            text: 'Xóa',
+            style: 'destructive',
+            onPress: () => {
+              setShowDelete(false);
+              onDelete(comment.id);
+            },
+          },
+        ]
+      );
+    }
+  };
+
   return (
     <View style={[styles.container, isReply && styles.replyContainer]}>
       {/* Avatar */}
@@ -75,7 +89,6 @@ export default function CommentItem({
           <Text style={styles.username}>
             {comment.sender.userName}
           </Text>
-          
           <Text style={styles.messageText}>
             {isReply && parentComment && (
               <Text style={styles.replyToText}>
@@ -92,36 +105,26 @@ export default function CommentItem({
             {Utils.formatTimeFromString(comment.createdAt)}
           </Text>
 
-          {comment.likesCount && comment.likesCount > 0 && (
-            <Text style={styles.likesText}>
-              {comment.likesCount} lượt thích
+          {/* Luôn hiển thị lượt thích, kể cả = 0 */}
+          <Text style={styles.likesText}>
+            {comment.likesCount || 0} lượt thích
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => onReply(comment)}
+            style={styles.actionButton}
+          >
+            <Text style={styles.actionText}>
+              Trả lời
             </Text>
-          )}
-
-          {/* {!isReply && ( */}
-            <TouchableOpacity
-              onPress={() => onReply(comment)}
-              style={styles.actionButton}
-            >
-              <Text style={styles.actionText}>
-                Trả lời
-              </Text>
-            </TouchableOpacity>
-          {/* )} */}
-
-          {isOwnComment && (
-            <TouchableOpacity onPress={handleDelete}>
-              <Text style={styles.deleteText}>
-                Xóa
-              </Text>
-            </TouchableOpacity>
-          )}
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Like button */}
+      {/* Like button và long press để xóa */}
       <TouchableOpacity
         onPress={handleLike}
+        onLongPress={handleLongPress}
         style={styles.likeButton}
       >
         <Ionicons
@@ -157,22 +160,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#E1E1E1',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 6,
   },
   content: {
     flex: 1,
   },
   messageContainer: {
-    backgroundColor: '#F2F2F2',
+    // backgroundColor: '#F2F2F2',
     borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    flexDirection: 'row',
+    gap: 6,
+    // paddingVertical: 8,
+    marginBottom: 8,
   },
   username: {
     fontWeight: '600',
     fontSize: 13,
     color: '#000',
-    marginBottom: 2,
   },
   messageText: {
     fontSize: 14,
@@ -186,22 +191,22 @@ const styles = StyleSheet.create({
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: -3,
     paddingHorizontal: 12,
   },
   timeText: {
     color: '#888',
     fontSize: 12,
-    marginRight: 16,
+    marginRight: 12,
   },
   likesText: {
     color: '#888',
     fontSize: 12,
-    marginRight: 16,
+    marginRight: 12,
     fontWeight: '600',
   },
   actionButton: {
-    marginRight: 16,
+    marginRight: 12,
   },
   actionText: {
     color: '#888',

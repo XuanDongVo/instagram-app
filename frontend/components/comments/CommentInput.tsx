@@ -8,16 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Comment } from '../../types/comment';
-
-interface CommentInputProps {
-  value: string;
-  onChangeText: (text: string) => void;
-  onSubmit: (content: string, parentCommentId?: string) => void;
-  replyingTo: Comment | null;
-  onCancelReply: () => void;
-  placeholder?: string;
-}
+import { CommentInputProps } from '../../types/comment';      
 
 export default function CommentInput({
   value,
@@ -48,9 +39,8 @@ export default function CommentInput({
       {replyingTo && (
         <View style={styles.replyIndicator}>
           <Text style={styles.replyText}>
-            Đang trả lời {replyingTo.user.userName}
+            Đang trả lời {replyingTo.sender?.userName || 'user'}
           </Text>
-          
           <TouchableOpacity
             onPress={handleCancelReply}
             style={styles.cancelReplyButton}
