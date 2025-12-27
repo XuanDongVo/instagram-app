@@ -3,7 +3,6 @@ import { StyleSheet, Alert } from "react-native";
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { router } from "expo-router";
 import { authService } from "../../services/authService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState("");
@@ -23,23 +22,23 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const response = await authService.register({
+      await authService.register({
         email,
         password,
         userName,
         fullName,
       });
 
-      // Lưu token
-      await AsyncStorage.setItem("accessToken", response.accessToken);
-
-      // Chuyển hướng đến trang đăng nhập
-      router.replace("/login");
+      // Tokens already saved by authService
+      Alert.alert(
+        "Đăng ký thành công", 
+        "Tài khoản đã được tạo thành công!", 
+        [{ text: "OK", onPress: () => router.replace("/login") }]
+      );
 
     } catch (error: any) {
       console.error("Register failed:", error);
-      const errorMessage = error.response?.data || "Đăng ký thất bại. Vui lòng thử lại.";
-      // Backend trả về "Email đã tồn tại!"
+      const errorMessage = error.response?.data?.message || error.message || "Đăng ký thất bại. Vui lòng thử lại.";
       Alert.alert("Đăng ký thất bại", errorMessage);
     } finally {
       setLoading(false);

@@ -1,16 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { authService } from "../../services/authService";
 import { userFirebaseService } from "../../services/userFirebaseService";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login: authLogin } = useAuth();
 
   const handleLogin = async () => {
     if (loading) return;
@@ -19,25 +20,26 @@ export default function LoginScreen() {
     try {
       const response = await authService.login({ email, password });
 
-      // Lưu token
-      await AsyncStorage.setItem("accessToken", response.accessToken);
+      // Update auth state (tokens already saved by authService)
+      await authLogin(
+        response.accessToken, 
+        response.refreshToken || '', 
+        {
+          id: response.id,
+          userName: response.userName,
+          fullName: response.fullName,
+          email: response.email,
+        }
+      );
+
       // Tạo/cập nhật user trong Firebase cho chat
       await userFirebaseService.ensureUserExistsInFirebase(response);
-      const currentUser = {
-        id: response.id,
-        userName: response.userName,
-        fullName: response.fullName,
-        email: response.email,
-        accessToken: response.accessToken
-      };
-      await AsyncStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-      // Chuyển hướng đến trang chủ
       router.replace("/");
 
     } catch (error: any) {
       console.error("Login failed:", error);
-      const errorMessage = error.response?.data || "Email hoặc mật khẩu không chính xác.";
+      const errorMessage = error.response?.data?.message || error.message || "Email hoặc mật khẩu không chính xác.";
       Alert.alert("Đăng nhập thất bại", errorMessage);
     } finally {
       setLoading(false);

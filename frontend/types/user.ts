@@ -121,3 +121,18 @@ export interface UserProfileState {
   followers: number;
   following: number;
 }
+
+
+export interface User {
+  id: string;
+  userName: string;
+  fullName: string;
+  email: string;
+  profileImage?: string;
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  loading: boolean;
+}

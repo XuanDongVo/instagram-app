@@ -1,28 +1,27 @@
-// import React, { useState, useEffect } from 'react';
-// import {
-//   View,
-//   StyleSheet,
-//   ScrollView,
-//   SafeAreaView,
-//   ActivityIndicator,
-//   Text,
-//   RefreshControl,
-//   Alert,
-//   FlatList,
-// } from 'react-native';
-// import { SearchBar } from '@/components/search/SearchBar';
-// import { PostGrid } from '@/components/search/PostGrid';
-// import { UserSearchItem } from '@/components/search/UserSearchItem';
-// import { PostResponse } from '@/types/post';
-// import { Colors } from '@/constants/theme';
-// import { useColorScheme } from '@/hooks/use-color-scheme';
-// import { userService } from '@/services/userService';
-// import { api } from '@/services/api';
-// import { useAuth } from '@/hooks/useAuth';
-// import { UserSearchResponse } from '@/types/user';
-// import { StoryViewer } from '@/components/story/StoryViewer';
-// import { useStory } from '@/hooks/useStory';
-// import { StoryResponse } from '@/types/story';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  ActivityIndicator,
+  Text,
+  RefreshControl,
+  Alert,
+  FlatList,
+} from 'react-native';
+import { SearchBar } from '@/components/search/SearchBar';
+import { PostGrid } from '@/components/search/PostGrid';
+import { UserSearchItem } from '@/components/search/UserSearchItem';
+import { PostResponse } from '@/types/post';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { userService } from '@/services/userService';
+import { useAuth } from '@/hooks/useAuth';
+import { UserSearchResponse } from '@/types/user';
+import { StoryViewer } from '@/components/story/StoryViewer';
+import { useStory } from '@/hooks/useStory';
+import { StoryResponse } from '@/types/story';
 
 // export default function SearchScreen() {
 //   const colorScheme = useColorScheme();
