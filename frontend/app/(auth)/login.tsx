@@ -5,6 +5,8 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View }
 import { authService } from "../../services/authService";
 import { userFirebaseService } from "../../services/userFirebaseService";
 import { useAuth } from "../../hooks/useAuth";
+import { getRoleFromAccessToken } from "../../services/jwt";
+
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,38 +15,85 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const { login: authLogin } = useAuth();
 
+
   const handleLogin = async () => {
-    if (loading) return;
-    setLoading(true);
+  if (loading) return;
+  setLoading(true);
 
-    try {
-      const response = await authService.login({ email, password });
+  try {
+    const response = await authService.login({ email, password });
 
-      // Update auth state (tokens already saved by authService)
-      await authLogin(
-        response.accessToken, 
-        response.refreshToken || '', 
-        {
-          id: response.id,
-          userName: response.userName,
-          fullName: response.fullName,
-          email: response.email,
-        }
-      );
+    // Update auth state (tokens already saved by authService)
+    await authLogin(
+      response.accessToken,
+      response.refreshToken || "",
+      {
+        id: response.id,
+        userName: response.userName,
+        fullName: response.fullName,
+        email: response.email,
+      }
+    );
 
-      // Tạo/cập nhật user trong Firebase cho chat
-      await userFirebaseService.ensureUserExistsInFirebase(response);
+    const role = getRoleFromAccessToken(response.accessToken);
 
-      router.replace("/");
-
-    } catch (error: any) {
-      console.error("Login failed:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Email hoặc mật khẩu không chính xác.";
-      Alert.alert("Đăng nhập thất bại", errorMessage);
-    } finally {
-      setLoading(false);
+    if (role === "ADMIN") {
+      //  Admin: không cần tạo user Firebase cho chat
+      router.replace("/admin");
+      return;
     }
-  };
+
+    //  User
+    await userFirebaseService.ensureUserExistsInFirebase(response);
+    router.replace("/");
+
+  } catch (error: any) {
+    console.error("Login failed:", error);
+    const errorMessage =
+      error.response?.data?.message || error.message || "Email hoặc mật khẩu không chính xác.";
+    Alert.alert("Đăng nhập thất bại", errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // const handleLogin = async () => {
+  //   if (loading) return;
+  //   setLoading(true);
+
+  //   try {
+  //     const response = await authService.login({ email, password });
+
+  //     // Update auth state (tokens already saved by authService)
+  //     await authLogin(
+  //       response.accessToken, 
+  //       response.refreshToken || '', 
+  //       {
+  //         id: response.id,
+  //         userName: response.userName,
+  //         fullName: response.fullName,
+  //         email: response.email,
+  //       }
+  //     );
+
+  //     if (response.role === "ADMIN") {
+  //     router.replace("/admin");
+  //     return;
+  //   }
+
+  //     // Tạo/cập nhật user trong Firebase cho chat
+  //     await userFirebaseService.ensureUserExistsInFirebase(response);
+
+  //     router.replace("/");
+
+  //   } catch (error: any) {
+  //     console.error("Login failed:", error);
+  //     const errorMessage = error.response?.data?.message || error.message || "Email hoặc mật khẩu không chính xác.";
+  //     Alert.alert("Đăng nhập thất bại", errorMessage);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   return (
     <View style={styles.container}>

@@ -1,5 +1,6 @@
 package com.example.entity;
 
+import com.example.enums.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,10 @@ public class User  {
     private String password;
     private String profileImage;
     private String bio;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
 
     public String getId() {
         return id;
@@ -85,5 +90,12 @@ public class User  {
     public void setBio(String bio) {
         this.bio = bio;
     }
+
+    //Thêm mặc định USER (để user cũ không bị null)
+    @PrePersist
+    public void prePersist() {
+        if (role == null) role = Role.USER;
+    }
+
 
 }

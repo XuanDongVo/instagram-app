@@ -4,12 +4,14 @@ import com.example.entity.User;
 import com.example.repository.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,17 @@ public class UserDetailService implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email " + email));
 
-        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(),  Collections.emptyList());
+        String roleName = (user.getRole() == null) ? "USER" : user.getRole().name();
+        List<SimpleGrantedAuthority> authorities =
+                List.of(new SimpleGrantedAuthority("ROLE_" + roleName));
+
+
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                authorities
+        );
+//        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(),  Collections.emptyList());
     }
 
 }

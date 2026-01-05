@@ -1,4 +1,5 @@
 package com.example.service.user;
+import com.example.enums.Role;
 
 import com.example.dto.request.RegisterRequest;
 import com.example.dto.request.UpdateProfileRequest;
@@ -56,7 +57,10 @@ public class UserService {
         Authentication authenticationRequest = UsernamePasswordAuthenticationToken.unauthenticated(email, password);
         Authentication authenticationResponse = this.authenticationManager.authenticate(authenticationRequest);
 
-        String accessToken = jwtService.createAccessToken(authenticationResponse);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Email không tồn tại"));
+
+        String accessToken = jwtService.createAccessToken(authenticationResponse, user.getRole().name());
         String refreshToken = jwtService.createRefreshToken(authenticationResponse);
 
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
@@ -67,8 +71,8 @@ public class UserService {
         refreshTokenCookie.setAttribute("SameSite", "Strict");
         response.addCookie(refreshTokenCookie);
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(EntityNotFoundException::new);
+//        User user = userRepository.findByEmail(email)
+//                .orElseThrow(EntityNotFoundException::new);
 
         return mapper.toAuthResponse(user, accessToken);
     }
@@ -84,6 +88,7 @@ public class UserService {
         user.setEmail(registerRequest.getEmail());
         user.setUserName(registerRequest.getUserName());
         user.setFullName(registerRequest.getFullName());
+        user.setRole(Role.USER);
         String hashPassword = passwordEncoder.encode(registerRequest.getPassword());
         user.setPassword(hashPassword);
         userRepository.save(user);

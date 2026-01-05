@@ -25,15 +25,20 @@ public class JwtService {
     private final JwtEncoder jwtEncoder;
 
 
-    public String createAccessToken(Authentication authentication) {
+    public String createAccessToken(Authentication authentication, String role) {
         Instant now = Instant.now();
         Instant validity = now.plus(this.accessTokenExpiration, ChronoUnit.SECONDS);
 
         String authorities = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
-        JwtClaimsSet claimsSet = JwtClaimsSet.builder().issuedAt(now).expiresAt(validity)
-                .subject(authentication.getName()).claim(AUTHORITY, authorities).build();
+        JwtClaimsSet claimsSet = JwtClaimsSet.builder()
+                .issuedAt(now)
+                .expiresAt(validity)
+                .subject(authentication.getName())
+                .claim(AUTHORITY, authorities)
+                .claim("role", role)
+                .build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
 
