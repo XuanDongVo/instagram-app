@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { getRoleFromAccessToken } from "../../services/jwt";
+// import { getRoleFromAccessToken } from "../../services/jwt";
 
 export default function AdminLayout() {
   const [status, setStatus] = useState<"loading" | "allowed" | "denied">(
@@ -12,8 +12,7 @@ export default function AdminLayout() {
   useEffect(() => {
     (async () => {
       try {
-        const token = await AsyncStorage.getItem("accessToken");
-        const role = getRoleFromAccessToken(token);
+        const role = await AsyncStorage.getItem("role");
         setStatus(role === "ADMIN" ? "allowed" : "denied");
       } catch {
         setStatus("denied");

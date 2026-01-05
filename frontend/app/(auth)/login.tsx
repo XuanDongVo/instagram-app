@@ -5,7 +5,8 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View }
 import { authService } from "../../services/authService";
 import { userFirebaseService } from "../../services/userFirebaseService";
 import { useAuth } from "../../hooks/useAuth";
-import { getRoleFromAccessToken } from "../../services/jwt";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+// import { getRoleFromAccessToken } from "../../services/jwt";
 
 
 export default function LoginScreen() {
@@ -35,9 +36,10 @@ export default function LoginScreen() {
       }
     );
 
-    const role = getRoleFromAccessToken(response.accessToken);
+    // const role = getRoleFromAccessToken(response.accessToken);\
+    await AsyncStorage.setItem("role", response.role);
 
-    if (role === "ADMIN") {
+    if (response.role === "ADMIN") {
       //  Admin: không cần tạo user Firebase cho chat
       router.replace("/admin");
       return;
