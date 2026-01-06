@@ -39,8 +39,13 @@ public class UserMapper {
 	}
 
 	public AuthResponse toAuthResponse(User user, String accessToken) {
-		return AuthResponse.builder().id(user.getId()).userName(user.getUserName()).fullName(user.getFullName())
-				.email(user.getEmail()).accessToken(accessToken).build();
+		return AuthResponse.builder()
+                .id(user.getId())
+                .userName(user.getUserName())
+                .fullName(user.getFullName())
+				.email(user.getEmail())
+                .role(user.getRole() != null ? user.getRole().name(): null)
+                .accessToken(accessToken).build();
 	}
 
 	public PostProfileResponse toPostResponse(Post post) {
