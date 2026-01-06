@@ -25,21 +25,6 @@ export default function CommentItem({
     onToggleLike(comment.id);
   };
 
-  const handleDelete = () => {
-    Alert.alert(
-      'Xóa bình luận',
-      'Bạn có chắc chắn muốn xóa bình luận này?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: () => onDelete(comment.id),
-        },
-      ]
-    );
-  };
-
 
   const isOwnComment = comment.sender.id === currentUserId;
 
@@ -47,93 +32,84 @@ export default function CommentItem({
   const [showDelete, setShowDelete] = useState(false);
 
   const handleLongPress = () => {
+    console.log('Long press on comment');
     if (isOwnComment) {
-      Alert.alert(
-        'Xóa bình luận',
-        'Bạn có chắc chắn muốn xóa bình luận này?',
-        [
-          { text: 'Hủy', style: 'cancel', onPress: () => setShowDelete(false) },
-          {
-            text: 'Xóa',
-            style: 'destructive',
-            onPress: () => {
-              setShowDelete(false);
-              onDelete(comment.id);
-            },
-          },
-        ]
-      );
     }
   };
 
   return (
-    <View style={[styles.container, isReply && styles.replyContainer]}>
-      {/* Avatar */}
-      <TouchableOpacity>
-        {comment.sender.profileImage ? (
-          <Image
-            source={{ uri: comment.sender.profileImage }}
-            style={styles.avatar}
-          />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={18} color="#888" />
-          </View>
-        )}
-      </TouchableOpacity>
 
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Username and content */}
-        <View style={styles.messageContainer}>
-          <Text style={styles.username}>
-            {comment.sender.userName}
-          </Text>
-          <Text style={styles.messageText}>
-            {isReply && parentComment && (
-              <Text style={styles.replyToText}>
-                @{parentComment.sender.userName}{' '}
-              </Text>
-            )}
-            {comment.content}
-          </Text>
-        </View>
+    <TouchableOpacity onLongPress={handleLongPress}>
+      <View style={[styles.container, isReply && styles.replyContainer]}>
+        {/* Avatar */}
+        <TouchableOpacity >
 
-        {/* Actions */}
-        <View style={styles.actionsContainer}>
-          <Text style={styles.timeText}>
-            {Utils.formatTimeFromString(comment.createdAt)}
-          </Text>
+          {comment.sender.profileImage ? (
+            <Image
+              source={{ uri: comment.sender.profileImage }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person" size={18} color="#888" />
+            </View>
+          )}
+        </TouchableOpacity>
 
-          {/* Luôn hiển thị lượt thích, kể cả = 0 */}
-          <Text style={styles.likesText}>
-            {comment.likesCount || 0} lượt thích
-          </Text>
 
-          <TouchableOpacity
-            onPress={() => onReply(comment)}
-            style={styles.actionButton}
-          >
-            <Text style={styles.actionText}>
-              Trả lời
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Username and content */}
+          <View style={styles.messageContainer}>
+            <Text style={styles.username}>
+              {comment.sender.userName}
             </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            <Text style={styles.messageText}>
+              {isReply && parentComment && (
+                <Text style={styles.replyToText}>
+                  @{parentComment.sender.userName}{' '}
+                </Text>
+              )}
+              {comment.content}
+            </Text>
+          </View>
 
-      {/* Like button và long press để xóa */}
-      <TouchableOpacity
-        onPress={handleLike}
-        onLongPress={handleLongPress}
-        style={styles.likeButton}
-      >
-        <Ionicons
-          name={comment.isLiked ? 'heart' : 'heart-outline'}
-          size={12}
-          color={comment.isLiked ? '#FF3040' : '#888'}
-        />
-      </TouchableOpacity>
-    </View>
+          {/* Actions */}
+          <View style={styles.actionsContainer}>
+            <Text style={styles.timeText}>
+              {Utils.formatTimeFromString(comment.createdAt)}
+            </Text>
+
+            {/* Luôn hiển thị lượt thích, kể cả = 0 */}
+            <Text style={styles.likesText}>
+              {comment.likesCount || 0} lượt thích
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => onReply(comment)}
+              style={styles.actionButton}
+            >
+              <Text style={styles.actionText}>
+                Trả lời
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Like button và long press để xóa */}
+        <TouchableOpacity
+          onPress={handleLike}
+
+          style={styles.likeButton}
+        >
+          <Ionicons
+            name={comment.isLiked ? 'heart' : 'heart-outline'}
+            size={12}
+            color={comment.isLiked ? '#FF3040' : '#888'}
+          />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -143,7 +119,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   replyContainer: {
-    marginLeft: 0, 
+    marginLeft: 0,
     paddingVertical: 8,
     paddingLeft: 20,
   },
