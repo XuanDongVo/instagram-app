@@ -123,7 +123,11 @@ public class StoryService {
     @Scheduled(fixedRate = 3600000) // 1 giờ = 3600000 milliseconds
     @Transactional
     public void deleteExpiredStories() {
-        storyRepository.deleteExpiredStories(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        // Xóa story views trước
+        storyViewRepository.deleteViewsForExpiredStories(now);
+        // Sau đó xóa expired stories
+        storyRepository.deleteExpiredStories(now);
     }
 }
 
