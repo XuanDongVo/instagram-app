@@ -3,8 +3,9 @@ import { ApiService, ApiResponse } from "./api";
 
 export class LikeService {
   static async likePost(likeRequest: LikeRequest): Promise<void> {
+    console.log("LikeService.likePost called with:", likeRequest);
     try {
-      await ApiService.post<ApiResponse<any>>(`/api/v1/like`, likeRequest);
+      await ApiService.post<ApiResponse<any>>(`/v1/like`, likeRequest);
     } catch (error) {
       console.error("Error liking post:", error);
       throw error;
@@ -13,7 +14,7 @@ export class LikeService {
 
   static async unlikePost(likeRequest: LikeRequest): Promise<void> {
     try {
-      await ApiService.delete<ApiResponse<any>>(`/api/v1/like`, {
+      await ApiService.delete<ApiResponse<any>>(`/v1/like`, {
         likeRequest,
       });
     } catch (error) {

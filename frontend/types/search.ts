@@ -10,5 +10,6 @@ export interface SearchBarProps {
 export interface UserSearchItemProps {
   user: UserSearchResponse;
   currentUserId?: string | null;
-  onPress: (userId: string) => void;
+  onAvatarPress: (userId: string) => void;
+  onItemPress: (userId: string) => void;
 }

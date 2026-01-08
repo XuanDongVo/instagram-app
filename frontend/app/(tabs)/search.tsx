@@ -22,231 +22,237 @@ import { UserSearchResponse } from '@/types/user';
 import { StoryViewer } from '@/components/story/StoryViewer';
 import { useStory } from '@/hooks/useStory';
 import { StoryResponse } from '@/types/story';
+import { router } from 'expo-router';
 
-// export default function SearchScreen() {
-//   const colorScheme = useColorScheme();
-//   const isDark = colorScheme === 'dark';
-//   const { user } = useAuth();
-//   const { viewStory, deleteStory } = useStory();
+export default function SearchScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const { user } = useAuth();
+  const { viewStory, deleteStory } = useStory();
 
-//   const [searchQuery, setSearchQuery] = useState('');
-//   const [posts, setPosts] = useState<PostResponse[]>([]);
-//   const [filteredSearchUsers, setfilteredSearchUsers] = useState<UserSearchResponse[]>([]);
-//   const [loading, setLoading] = useState(false);
-//   const [searchingUsers, setSearchingUsers] = useState(false);
-//   const [refreshing, setRefreshing] = useState(false);
-  
-//   // Story viewer states
-//   const [showViewer, setShowViewer] = useState(false);
-//   const [viewerStories, setViewerStories] = useState<StoryResponse[]>([]);
-//   const [viewerIndex, setViewerIndex] = useState(0);
-//   const [isMyStoryViewer, setIsMyStoryViewer] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [posts, setPosts] = useState<PostResponse[]>([]);
+  const [filteredSearchUsers, setfilteredSearchUsers] = useState<UserSearchResponse[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-//   useEffect(() => {
-//     loadPosts();
-//   }, []);
+  // Story viewer states
+  const [showViewer, setShowViewer] = useState(false);
+  const [viewerStories, setViewerStories] = useState<StoryResponse[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [isMyStoryViewer, setIsMyStoryViewer] = useState(false);
 
-//   useEffect(() => {
-//     if (searchQuery.trim()) {
-//       searchUsers();
-//     } else {
-//       setfilteredSearchUsers([]);
-//     }
-//   }, [searchQuery, posts]);
+  useEffect(() => {
+    loadPosts();
+  }, []);
 
-//   const loadPosts = async () => {
-//     if (!user?.id) return;
-    
-//     try {
-//       setLoading(true);
-     
-//     } catch (error) {
-//       setPosts([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      searchUsers();
+    } else {
+      setfilteredSearchUsers([]);
+    }
+  }, [searchQuery, posts]);
 
-//   const onRefresh = async () => {
-//     setRefreshing(true);
-//     await loadPosts();
-//     setRefreshing(false);
-//   };
+  const loadPosts = async () => {
+    if (!user?.id) return;
 
-//   const searchUsers = async () => {
-//     if (!searchQuery.trim()) {
-//       setfilteredSearchUsers([]);
-//       return;
-//     }
+    try {
+      setLoading(true);
 
-//     try {
-//       setSearchingUsers(true);
-//       const userSearchResults = await userService.searchUsers(searchQuery);
-//       setfilteredSearchUsers(userSearchResults);
-//     } catch (error) {
-//       setfilteredSearchUsers([]);
-//     } finally {
-//       setSearchingUsers(false);
-//     }
-//   };
+    } catch (error) {
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-//   const handleClearSearch = () => {
-//     setSearchQuery('');
-//   };
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadPosts();
+    setRefreshing(false);
+  };
 
-//   const handlePostPress = (post: PostResponse) => {
-//     Alert.alert('Post', `Viewing post by ${post.user.userName}`);
-//   };
+  const searchUsers = async () => {
+    if (!searchQuery.trim()) {
+      setfilteredSearchUsers([]);
+      return;
+    }
 
-//   const handleStoryPress = (userId: string, isMyStory: boolean) => {
-//     // Tìm user trong search results
-//     const searchedUser = filteredSearchUsers.find(u => u.id === userId);
-//     if (!searchedUser || !searchedUser.hasStory || searchedUser.stories.length === 0) {
-//       return;
-//     }
-    
-//     setViewerStories(searchedUser.stories);
-//     setViewerIndex(0);
-//     setIsMyStoryViewer(isMyStory);
-//     setShowViewer(true);
-//   };
+    try {
+      setSearchingUsers(true);
+      const userSearchResults = await userService.searchUsers(searchQuery);
+      setfilteredSearchUsers(userSearchResults);
+    } catch (error) {
+      setfilteredSearchUsers([]);
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
 
-//   return (
-//     <SafeAreaView
-//       style={[
-//         styles.container,
-//         { backgroundColor: isDark ? Colors.dark.background : Colors.light.background },
-//       ]}
-//     >
-//       {/* Search Bar */}
-//       <SearchBar
-//         value={searchQuery}
-//         onChangeText={setSearchQuery}
-//         placeholder="Search"
-//         onClear={handleClearSearch}
-//       />
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
 
-//       <ScrollView
-//         style={styles.scrollView}
-//         refreshControl={
-//           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-//         }
-//       >
+  const handlePostPress = (post: PostResponse) => {
+    Alert.alert('Post', `Viewing post by ${post.user.userName}`);
+  };
 
-//         {/* Story Users - only show when searching */}
-//         {searchQuery.trim() && (
-//           <>
-//             {searchingUsers && (
-//               <View style={styles.loadingContainer}>
-//                 <ActivityIndicator size="large" color="#0095f6" />
-//                 <Text style={styles.loadingText}>Searching users...</Text>
-//               </View>
-//             )}
+  const handleStoryPress = (userId: string, isMyStory: boolean) => {
+    // Tìm user trong search results
+    const searchedUser = filteredSearchUsers.find(u => u.id === userId);
+    if (!searchedUser || !searchedUser.hasStory || searchedUser.stories.length === 0) {
+      return;
+    }
 
-//             {!searchingUsers && filteredSearchUsers.length > 0 && (
-//               <View style={styles.searchResults}>
-//                 {filteredSearchUsers.length > 0 && (
-//                   <FlatList
-//                     data={filteredSearchUsers}
-//                     keyExtractor={(item) => item.id}
-//                     renderItem={({ item }) => (
-//                       <UserSearchItem
-//                         user= {item}
-//                         currentUserId={user?.id || null}
-//                         onPress={(userId) => {
-//                           if (item.hasStory) {
-//                             handleStoryPress(userId, userId === user?.id);
-//                           } else {
-//                             Alert.alert('Profile', `View profile of ${item.userName}`);
-//                           }
-//                         }}
-//                       />
-//                     )}
-//                     scrollEnabled={false}
-//                   />
-//                 )}
-//               </View>
-//             )}
+    setViewerStories(searchedUser.stories);
+    setViewerIndex(0);
+    setIsMyStoryViewer(isMyStory);
+    setShowViewer(true);
+  };
 
-//             {!searchingUsers && filteredSearchUsers.length === 0 && (
-//               <View style={styles.emptyContainer}>
-//                 <Text style={styles.emptyText}>No users found</Text>
-//               </View>
-//             )}
-//           </>
-//         )}
+  const handleProfileUserPress = (userId: string) => {
+    router.push(`/user/${userId}`);
+  };
 
-//         {/* Posts - only show when NOT searching */}
-//         {!searchQuery.trim() && (
-//           <>
-//             {loading && (
-//               <View style={styles.loadingContainer}>
-//                 <ActivityIndicator size="large" color="#0095f6" />
-//               </View>
-//             )}
+  return (
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? Colors.dark.background : Colors.light.background },
+      ]}
+    >
+      {/* Search Bar */}
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Search"
+        onClear={handleClearSearch}
+      />
 
-//             {!loading && posts.length === 0 && (
-//               <View style={styles.emptyContainer}>
-//                 <Text style={styles.emptyText}>No posts available</Text>
-//               </View>
-//             )}
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
 
-//             {!loading && posts.length > 0 && (
-//               <PostGrid posts={posts} onPostPress={handlePostPress} />
-//             )}
-//           </>
-//         )}
-//       </ScrollView>
+        {/* Story Users - only show when searching */}
+        {searchQuery.trim() && (
+          <>
+            {searchingUsers && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#0095f6" />
+                <Text style={styles.loadingText}>Searching users...</Text>
+              </View>
+            )}
 
-//       <StoryViewer
-//         visible={showViewer}
-//         stories={viewerStories}
-//         initialIndex={viewerIndex}
-//         onClose={() => setShowViewer(false)}
-//         onView={viewStory}
-//         onDelete={isMyStoryViewer ? deleteStory : undefined}
-//         isMyStory={isMyStoryViewer}
-//       />
-//     </SafeAreaView>
-//   );
-// }
+            {!searchingUsers && filteredSearchUsers.length > 0 && (
+              <View style={styles.searchResults}>
+                {filteredSearchUsers.length > 0 && (
+                  <FlatList
+                    data={filteredSearchUsers}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <UserSearchItem
+                        user={item}
+                        currentUserId={user?.id || null}
+                        onAvatarPress={() => {
+                          if (item.hasStory && item.stories.length > 0) {
+                            handleStoryPress(item.id, item.id === user?.id);
+                          } else {
+                            handleProfileUserPress(item.id);
+                          }
+                        }}
+                        onItemPress={() => handleProfileUserPress(item.id)}
+                      />
+                    )}
+                    scrollEnabled={false}
+                  />
+                )}
+              </View>
+            )}
 
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//   },
-//   scrollView: {
-//     flex: 1,
-//   },
-//   searchResults: {
-//     backgroundColor: '#fff',
-//   },
-//   storySection: {
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#efefef',
-//     paddingBottom: 8,
-//   },
-//   loadingContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     paddingVertical: 40,
-//   },
-//   loadingText: {
-//     marginTop: 8,
-//     fontSize: 14,
-//     color: '#737373',
-//   },
-//   emptyContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     paddingVertical: 60,
-//   },
-//   emptyText: {
-//     fontSize: 16,
-//     color: '#737373',
-//   },
-// });
+            {!searchingUsers && filteredSearchUsers.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No users found</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Posts - only show when NOT searching */}
+        {!searchQuery.trim() && (
+          <>
+            {loading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#0095f6" />
+              </View>
+            )}
+
+            {!loading && posts.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No posts available</Text>
+              </View>
+            )}
+
+            {!loading && posts.length > 0 && (
+              <PostGrid posts={posts} onPostPress={handlePostPress} />
+            )}
+          </>
+        )}
+      </ScrollView>
+
+      <StoryViewer
+        visible={showViewer}
+        stories={viewerStories}
+        initialIndex={viewerIndex}
+        onClose={() => setShowViewer(false)}
+        onView={viewStory}
+        onDelete={isMyStoryViewer ? deleteStory : undefined}
+        isMyStory={isMyStoryViewer}
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  searchResults: {
+    backgroundColor: '#fff',
+  },
+  storySection: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#efefef',
+    paddingBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#737373',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#737373',
+  },
+});
 
 

@@ -22,6 +22,7 @@ import { UserResponse } from "../../types/user";
 import { Ionicons } from "@expo/vector-icons";
 import { ModalUser, UserProfileState } from "../../types/user";
 const screenWidth = Dimensions.get("window").width;
+import { savedPostService } from "@/services/savedPostService";
 
 
 export default function Profile() {
@@ -153,11 +154,11 @@ export default function Profile() {
       });
       setIsFollowing(profileData.following);
 
-      const dummyPosts = Array.from({ length: 12 }).map((_, i) => ({
-        id: i.toString(),
-        imageUrl: `https://picsum.photos/id/${100 + i}/400/400`,
-      }));
-      setPosts(dummyPosts);
+      // const dummyPosts = Array.from({ length: 12 }).map((_, i) => ({
+      //   id: i.toString(),
+      //   imageUrl: `https://picsum.photos/id/${100 + i}/400/400`,
+      // }));
+      // setPosts(dummyPosts);
     } catch (error) {
       console.error("Lỗi khi tải profile:", error);
       setFetchError("Không thể tải hồ sơ. Vui lòng thử lại.");
@@ -185,12 +186,12 @@ export default function Profile() {
 
         setIsFollowing(false);
 
-        // 👇 user B (profile đang xem)
+        //  user B (profile đang xem)
         setUser(prev =>
           prev ? { ...prev, followers: prev.followers - 1 } : prev
         );
 
-        // 👇 user A (chính mình)
+        //  user A (chính mình)
         if (isMyProfile) {
           setUser(prev =>
             prev ? { ...prev, following: prev.following - 1 } : prev
@@ -248,7 +249,7 @@ export default function Profile() {
     try {
       console.log("Fetching followers cho:", profileId);
 
-      // ❗ Không có .data → backend trả mảng UserResponse[]
+      // Không có .data → backend trả mảng UserResponse[]
       const users: UserResponse[] = await profileService.getFollowers(profileId);
       console.log("Followers API trả về:", users);
       return users.map(u => ({
@@ -267,17 +268,11 @@ export default function Profile() {
     }
   }, [profileId]);
 
-
-
-
   const fetchFollowing = useCallback(async (): Promise<ModalUser[]> => {
     if (!profileId) return [];
-
     try {
-      console.log("Fetching following cho:", profileId);
-
       const users: UserResponse[] = await profileService.getFollowing(profileId);
-
+      
       return users.map(u => ({
         id: u.id,
         username: u.userName,
@@ -294,6 +289,19 @@ export default function Profile() {
     }
   }, [profileId]);
 
+  const fetchSavedPosts = useCallback(async () => {
+    if (!currentUserId) return;
+    try {
+      const savedPosts = await savedPostService.getSavedPostsByUserId(profileId || "");
+      console.log("Saved posts fetched:", savedPosts);
+      setPosts(savedPosts.map(sp => ({
+        id: sp.id,
+        imageUrl: sp.images[0]?.urlImage || "",
+      })));
+    } catch (error) {
+      console.error("Lỗi getSavedPosts:", error);
+    }
+  }, [profileId]);
 
 
   if (isLoading || !isCurrentUserIdLoaded) {
@@ -428,7 +436,7 @@ export default function Profile() {
             <Ionicons name={activeTab === "grid" ? "grid" : "grid-outline"} size={24} color={activeTab === "grid" ? "#000" : "#8e8e8e"} />
           </TouchableOpacity>
           {isMyProfile && (
-            <TouchableOpacity style={[styles.tabButton, activeTab === "tagged" && styles.activeTab]} onPress={() => setActiveTab("tagged")}>
+            <TouchableOpacity style={[styles.tabButton, activeTab === "tagged" && styles.activeTab]} onPress={() => { setActiveTab("tagged"); fetchSavedPosts(); }}>
               <Ionicons name={activeTab === "tagged" ? "person-circle" : "person-circle-outline"} size={28} color={activeTab === "tagged" ? "#000" : "#8e8e8e"} />
             </TouchableOpacity>
           )}
@@ -441,7 +449,6 @@ export default function Profile() {
           renderItem={renderPost}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
-          columnWrapperStyle={{ justifyContent: "space-between" }}
           contentContainerStyle={{ paddingHorizontal: 0.5 }}
         />
       </ScrollView>
