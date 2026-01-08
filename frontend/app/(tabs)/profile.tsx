@@ -23,6 +23,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { ModalUser, UserProfileState } from "../../types/user";
 const screenWidth = Dimensions.get("window").width;
 import { savedPostService } from "@/services/savedPostService";
+import { StoryCircle } from "@/components/story/StoryCircle";
+import { CreateStoryModal } from "@/components/story/CreateStoryModal";
+import { StoryViewer } from "@/components/story/StoryViewer";
+import { useStory } from "@/hooks/useStory";
+import { StoryResponse } from "@/types/story";
+import { LinearGradient } from 'expo-linear-gradient';
 
 
 export default function Profile() {
@@ -43,6 +49,30 @@ export default function Profile() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("grid");
   const [menuVisible, setMenuVisible] = useState(false);
+  
+  // Story states
+  const { 
+    stories, 
+    myStories, 
+    loading: storyLoading, 
+    currentUserId: storyCurrentUserId, 
+    createStory, 
+    viewStory, 
+    deleteStory, 
+    pickImage, 
+    pickVideo,
+    loadStories,
+    loadMyStories
+  } = useStory();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
+  const [viewerStories, setViewerStories] = useState<StoryResponse[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [isMyStoryViewer, setIsMyStoryViewer] = useState(false);
+  
+  // Get user stories based on profileId
+  const userStories = profileId ? stories.filter(s => s.user.id === profileId) : [];
+  const hasStories = isMyProfile ? myStories.length > 0 : userStories.length > 0;
 
   const handleRemoveFollower = async (userId: string) => {
     // Reduce followers count for the profile being viewed
@@ -85,6 +115,24 @@ export default function Profile() {
   };
 
   const [myProfile, setMyProfile] = useState<UserProfileState | null>(null);
+  
+  const handleStoryPress = () => {
+    if (isMyProfile) {
+      if (myStories.length > 0) {
+        setViewerStories(myStories);
+        setViewerIndex(0);
+        setIsMyStoryViewer(true);
+        setShowViewer(true);
+      } else {
+        setShowCreateModal(true);
+      }
+    } else if (userStories.length > 0) {
+      setViewerStories(userStories);
+      setViewerIndex(0);
+      setIsMyStoryViewer(false);
+      setShowViewer(true);
+    }
+  };
 
   const fetchMyProfile = async () => {
     if (!currentUserId) return;
@@ -109,6 +157,16 @@ export default function Profile() {
       fetchMyProfile();
     }
   }, [currentUserId]);
+
+  // Refetch stories when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (storyCurrentUserId) {
+        loadStories();
+        loadMyStories();
+      }
+    }, [storyCurrentUserId])
+  );
 
 
   // Load current user ID
@@ -352,9 +410,51 @@ export default function Profile() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Avatar + Stats */}
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          </View>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={handleStoryPress}
+            activeOpacity={0.7}
+          >
+            {hasStories && !myStories.every(s => s.viewed) && isMyProfile ? (
+              // Unviewed story - gradient ring
+              <LinearGradient
+                colors={['#f77737', '#e91e63', '#8e44ad']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientRing}
+              >
+                <View style={styles.innerRing}>
+                  <Image source={{ uri: user.avatar }} style={styles.avatar} />
+                </View>
+              </LinearGradient>
+            ) : hasStories && myStories.every(s => s.viewed) && isMyProfile ? (
+              // Viewed story - gray ring
+              <View style={styles.viewedRing}>
+                <Image source={{ uri: user.avatar }} style={styles.avatar} />
+              </View>
+            ) : hasStories && !isMyProfile ? (
+              // Other user's story
+              userStories.every(s => s.viewed) ? (
+                <View style={styles.viewedRing}>
+                  <Image source={{ uri: user.avatar }} style={styles.avatar} />
+                </View>
+              ) : (
+                <LinearGradient
+                  colors={['#f77737', '#e91e63', '#8e44ad']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.gradientRing}
+                >
+                  <View style={styles.innerRing}>
+                    <Image source={{ uri: user.avatar }} style={styles.avatar} />
+                  </View>
+                </LinearGradient>
+              )
+            ) : (
+              // No story
+              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            )}
+          </TouchableOpacity>
 
           <View style={styles.stats}>
             <View style={styles.statBlock}>
@@ -410,26 +510,6 @@ export default function Profile() {
           )}
         </View>
 
-        {/* Highlights */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.highlights} contentContainerStyle={{ paddingRight: 10 }}>
-          {isMyProfile && (
-            <View style={styles.highlightItem}>
-              <View style={styles.newStoryCircle}>
-                <Ionicons name="add" size={32} color="#000" />
-              </View>
-              <Text style={styles.highlightText}>New</Text>
-            </View>
-          )}
-          {["Friends", "Sport", "Design"].map((name, i) => (
-            <View key={i} style={styles.highlightItem}>
-              <View style={styles.highlightCircle}>
-                <Image source={{ uri: `https://picsum.photos/100?random=${i + 10}` }} style={styles.highlightImage} />
-              </View>
-              <Text style={styles.highlightText}>{name}</Text>
-            </View>
-          ))}
-        </ScrollView>
-
         {/* Tabs */}
         <View style={styles.tabContainer}>
           <TouchableOpacity style={[styles.tabButton, activeTab === "grid" && styles.activeTab]} onPress={() => setActiveTab("grid")}>
@@ -475,6 +555,26 @@ export default function Profile() {
         isMyFollowersList={false}
         onUnfollow={handleUnfollowFromFollowing}
       />
+
+      {/* Story Modals */}
+      <CreateStoryModal
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onPickImage={pickImage}
+        onPickVideo={pickVideo}
+        onCreateStory={createStory}
+        loading={storyLoading}
+      />
+
+      <StoryViewer
+        visible={showViewer}
+        stories={viewerStories}
+        initialIndex={viewerIndex}
+        onClose={() => setShowViewer(false)}
+        onView={viewStory}
+        onDelete={isMyStoryViewer ? deleteStory : undefined}
+        isMyStory={isMyStoryViewer}
+      />
     </View>
   );
 }
@@ -493,6 +593,33 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", paddingHorizontal: 15, paddingTop: 10, paddingBottom: 10 },
   avatarContainer: { marginRight: 30 },
   avatar: { width: 88, height: 88, borderRadius: 44 },
+  gradientRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    padding: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  innerRing: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#fff',
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewedRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    padding: 3,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stats: { flex: 1, flexDirection: "row", justifyContent: "space-around", alignItems: "center" },
   statBlock: { alignItems: "center" },
   statNumber: { fontWeight: "600", fontSize: 17 },

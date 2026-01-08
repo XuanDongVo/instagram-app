@@ -2,16 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-
-interface StoryCircleProps {
-  userName: string;
-  profileImage?: string;
-  hasStory?: boolean;
-  isViewed?: boolean;
-  isAddStory?: boolean;
-  size?: number;
-  onPress: () => void;
-}
+import { StoryCircleProps } from '@/types/story';
 
 export function StoryCircle({
   userName,

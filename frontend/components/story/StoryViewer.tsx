@@ -12,20 +12,10 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { StoryResponse } from '@/types/story';
+import { StoryResponse, StoryViewerProps } from '@/types/story';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 seconds
-
-interface StoryViewerProps {
-  visible: boolean;
-  stories: StoryResponse[];
-  initialIndex?: number;
-  onClose: () => void;
-  onView: (storyId: string) => void;
-  onDelete?: (storyId: string) => void;
-  isMyStory?: boolean;
-}
 
 export function StoryViewer({
   visible,

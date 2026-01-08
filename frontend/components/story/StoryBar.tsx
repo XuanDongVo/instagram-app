@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 import { useStory } from '@/hooks/useStory';
 import { StoryList } from './StoryList';
 import { CreateStoryModal } from './CreateStoryModal';
 import { StoryViewer } from './StoryViewer';
 import { StoryResponse, StoryUser } from '@/types/story';
+import { useFocusEffect } from '@react-navigation/native';
 
 export function StoryBar() {
   const {
@@ -16,7 +17,9 @@ export function StoryBar() {
     viewStory,
     deleteStory,
     pickImage,
-    pickVideo
+    pickVideo,
+    loadStories,
+    loadMyStories
   } = useStory();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -94,6 +97,16 @@ export function StoryBar() {
 
     return Array.from(users.values());
   }, [stories, myStories, currentUserId]);
+
+  // Refetch stories periodically when component is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (currentUserId) {
+        loadStories();
+        loadMyStories();
+      }
+    }, [currentUserId, loadStories, loadMyStories])
+  );
 
   return (
     <View>

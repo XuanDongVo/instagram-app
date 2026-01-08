@@ -13,17 +13,8 @@ import {
   Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { MediaType } from '@/types/story';
+import { MediaType, CreateStoryModalProps } from '@/types/story';
 import { UploadService } from '@/services/uploadService';
-
-interface CreateStoryModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onPickImage: () => Promise<string | null>;
-  onPickVideo: () => Promise<string | null>;
-  onCreateStory: (mediaUrl: string, mediaType: MediaType) => Promise<void>;
-  loading?: boolean;
-}
 
 export function CreateStoryModal({
   visible,
