@@ -6,7 +6,9 @@ import { UserSearchItemProps } from '@/types/search';
 export function UserSearchItem({
   user,
   currentUserId,
-  onPress,
+  onItemPress,
+  onAvatarPress,
+
 }: UserSearchItemProps) {
   const { id, userName, fullName } = user;
 
@@ -18,7 +20,7 @@ export function UserSearchItem({
           user={user}
           currentUserId={currentUserId}
           onPress={(userId, isMyStory) => {
-            onPress(userId);
+            onAvatarPress(userId);
           }}
         />
       </View>
@@ -26,7 +28,7 @@ export function UserSearchItem({
       {/* User Info - clickable */}
       <TouchableOpacity
         style={styles.textContainer}
-        onPress={() => onPress(id)}
+        onPress={() => onItemPress(id)}
         activeOpacity={0.7}
       >
         <Text style={styles.userName} numberOfLines={1}>

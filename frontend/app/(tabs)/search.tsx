@@ -22,6 +22,7 @@ import { UserSearchResponse } from '@/types/user';
 import { StoryViewer } from '@/components/story/StoryViewer';
 import { useStory } from '@/hooks/useStory';
 import { StoryResponse } from '@/types/story';
+import { router } from 'expo-router';
 
 export default function SearchScreen() {
   const colorScheme = useColorScheme();
@@ -35,7 +36,7 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Story viewer states
   const [showViewer, setShowViewer] = useState(false);
   const [viewerStories, setViewerStories] = useState<StoryResponse[]>([]);
@@ -56,10 +57,10 @@ export default function SearchScreen() {
 
   const loadPosts = async () => {
     if (!user?.id) return;
-    
+
     try {
       setLoading(true);
-     
+
     } catch (error) {
       setPosts([]);
     } finally {
@@ -104,11 +105,15 @@ export default function SearchScreen() {
     if (!searchedUser || !searchedUser.hasStory || searchedUser.stories.length === 0) {
       return;
     }
-    
+
     setViewerStories(searchedUser.stories);
     setViewerIndex(0);
     setIsMyStoryViewer(isMyStory);
     setShowViewer(true);
+  };
+
+  const handleProfileUserPress = (userId: string) => {
+    router.push(`/user/${userId}`);
   };
 
   return (
@@ -151,15 +156,16 @@ export default function SearchScreen() {
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                       <UserSearchItem
-                        user= {item}
+                        user={item}
                         currentUserId={user?.id || null}
-                        onPress={(userId) => {
-                          if (item.hasStory) {
-                            handleStoryPress(userId, userId === user?.id);
+                        onAvatarPress={() => {
+                          if (item.hasStory && item.stories.length > 0) {
+                            handleStoryPress(item.id, item.id === user?.id);
                           } else {
-                            Alert.alert('Profile', `View profile of ${item.userName}`);
+                            handleProfileUserPress(item.id);
                           }
                         }}
+                        onItemPress={() => handleProfileUserPress(item.id)}
                       />
                     )}
                     scrollEnabled={false}
