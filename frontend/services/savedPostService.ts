@@ -7,7 +7,7 @@ export class savedPostService {
   ): Promise<SavedPostRequest[]> {
     try {
       const response = await ApiService.get<ApiResponse<SavedPostRequest[]>>(
-        `/api/v1/saved-posts?id=${userId}`
+        `/v1/saved-post?id=${userId}`
       );
       return response.data;
     } catch (error) {
@@ -19,7 +19,7 @@ export class savedPostService {
   static async savePost(savedPost: SavedPostRequest): Promise<void> {
     try {
       await ApiService.post<ApiResponse<any>>(
-        `/api/v1/saved-posts/save`,
+        `/v1/saved-post/save`,
         savedPost
       );
     } catch (error) {
@@ -29,7 +29,7 @@ export class savedPostService {
 
   static async unsavePost(savedPost: SavedPostRequest): Promise<void> {
     try {
-      await ApiService.delete<ApiResponse<any>>(`/api/v1/saved-posts/delete`, {
+      await ApiService.delete<ApiResponse<any>>(`/v1/saved-post/delete`, {
         data: savedPost,
       });
     } catch (error) {

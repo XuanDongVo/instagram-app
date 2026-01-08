@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import CommentBottomSheet from "../../components/comments/CommentBottomSheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LikeService } from "@/services/likeService";
+import { savedPostService } from "@/services/savedPostService";
 
 export default function PostCard({ post }: { post: PostResponse }) {
   const [user, setUser] = useState<any>(null);
@@ -29,18 +31,32 @@ export default function PostCard({ post }: { post: PostResponse }) {
       }
     })();
   });
-  
+
   const [liked, setLiked] = useState(post.liked);
   const [saved, setSaved] = useState(post.savedPost);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [showComments, setShowComments] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const toggleLike = useCallback(() => {
+  const toggleLike = useCallback(async (user_Id: string, post_Id: string) => {
+    if (!liked) {
+      await LikeService.likePost({ user_Id, post_Id });
+    } else {
+      await LikeService.unlikePost({ user_Id, post_Id });
+    }
     setLiked((v) => {
       const next = !v;
       setLikeCount((c) => (next ? c + 1 : Math.max(0, c - 1)));
       return next;
     });
+  }, []);
+
+  const toggleSaved = useCallback(async(userId: string, postId: string) => {
+    if (!saved) {
+      await savedPostService.savePost({ userId, postId });
+    }else {
+      await savedPostService.unsavePost({ userId, postId });
+    }
+    setSaved((v) => !v);
   }, []);
 
   return (
@@ -96,7 +112,7 @@ export default function PostCard({ post }: { post: PostResponse }) {
       )}
       <View style={styles.cardActions}>
         <View style={{ flexDirection: "row", gap: 16 }}>
-          <Pressable onPress={toggleLike} hitSlop={10}>
+          <Pressable onPress={() => toggleLike(CURRENT_USER_ID, post.id)} hitSlop={10}>
             <Feather
               name="heart"
               color={liked ? "#ef4444" : undefined}
@@ -110,8 +126,10 @@ export default function PostCard({ post }: { post: PostResponse }) {
             <Feather name="send" size={26} />
           </Pressable>
         </View>
-        <Pressable onPress={() => setSaved((s) => !s)} hitSlop={10}>
-          <Feather name="bookmark" size={26} />
+        <Pressable onPress={() => toggleSaved(CURRENT_USER_ID, post.id)} hitSlop={10}>
+          <Feather name="bookmark"
+            color={saved ? "#f59e0b" : undefined}
+            size={26} />
         </Pressable>
       </View>
       <View style={styles.cardMeta}>

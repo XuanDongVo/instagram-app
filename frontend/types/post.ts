@@ -2,8 +2,8 @@ import { UserResponse } from "./user";
 
 // ==================== LIKE ====================
 export interface LikeRequest {
-  postId: string;
-  userId: string;
+  post_Id: string;
+  user_Id: string;
 }
 
 // ==================== SAVED POST ====================
