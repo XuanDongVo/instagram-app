@@ -1,12 +1,12 @@
-import { SavedPostRequest } from "@/types/post";
+import { SavedPostRequest, PostResponse } from "@/types/post";
 import { ApiResponse, ApiService } from "./api";
 
 export class savedPostService {
   static async getSavedPostsByUserId(
     userId: string
-  ): Promise<SavedPostRequest[]> {
+  ): Promise<PostResponse[]> {
     try {
-      const response = await ApiService.get<ApiResponse<SavedPostRequest[]>>(
+      const response = await ApiService.get<ApiResponse<PostResponse[]>>(
         `/v1/saved-post?id=${userId}`
       );
       return response.data;
