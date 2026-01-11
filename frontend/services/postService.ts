@@ -8,10 +8,7 @@ export class PostService {
       const response = await api.post<ApiResponse<any>>("/v1/post", data);
       return response.data;
     } catch (error: any) {
-      console.error(
-        "Lỗi khi lưu bài viết:",
-        error?.response?.data || error.message
-      );
+      console.error("Lỗi khi lưu bài viết:", error?.response?.data || error.message);
       throw error;
     }
   }
@@ -19,6 +16,20 @@ export class PostService {
   static async getPost(userId: string): Promise<ApiResponse<PostResponse[]>> {
     try {
       const response = await api.get<ApiResponse<PostResponse[]>>("/v1/post", {
+        params: {
+          id: userId,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error(error?.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  static async getMinePost(userId: string): Promise<ApiResponse<PostResponse[]>> {
+    try {
+      const response = await api.get<ApiResponse<PostResponse[]>>("/v1/post/minePost", {
         params: {
           id: userId,
         },

@@ -1,16 +1,8 @@
 import { PostResponse } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useCallback, useState } from "react";
-import {
-  FlatList,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  View,
-  Dimensions,
-  StyleSheet,
-} from "react-native";
+import React, { useState, useCallback, useEffect } from "react";
+import { FlatList, Pressable, Text, TouchableOpacity, View, Dimensions, StyleSheet } from "react-native";
 import CommentBottomSheet from "../../components/comments/CommentBottomSheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LikeService } from "@/services/likeService";
@@ -21,22 +13,27 @@ export default function PostCard({ post }: { post: PostResponse }) {
   const CURRENT_USER_ID = user?.id || user?.userId;
 
   // Load user from AsyncStorage
-  useState(() => {
-    (async () => {
+  useEffect(() => {
+    const loadUser = async () => {
       try {
         const userString = await AsyncStorage.getItem("currentUser");
-        setUser(userString ? JSON.parse(userString) : null);
+        console.log("User data:", userString);
+        if (userString) {
+          setUser(JSON.parse(userString));
+        }
       } catch (e) {
-        setUser(null);
+        console.error("Lỗi khi đọc AsyncStorage:", e);
       }
-    })();
-  });
+    };
+    loadUser();
+  }, []);
 
   const [liked, setLiked] = useState(post.liked);
   const [saved, setSaved] = useState(post.savedPost);
   const [likeCount, setLikeCount] = useState(post.likes);
   const [showComments, setShowComments] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   const toggleLike = useCallback(async (user_Id: string, post_Id: string) => {
     if (!liked) {
       await LikeService.likePost({ user_Id, post_Id });
@@ -50,10 +47,10 @@ export default function PostCard({ post }: { post: PostResponse }) {
     });
   }, []);
 
-  const toggleSaved = useCallback(async(userId: string, postId: string) => {
+  const toggleSaved = useCallback(async (userId: string, postId: string) => {
     if (!saved) {
       await savedPostService.savePost({ userId, postId });
-    }else {
+    } else {
       await savedPostService.unsavePost({ userId, postId });
     }
     setSaved((v) => !v);
@@ -62,10 +59,7 @@ export default function PostCard({ post }: { post: PostResponse }) {
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Image
-          source={{ uri: post.user.profileImage }}
-          style={styles.cardAvatar}
-        />
+        <Image source={{ uri: post.user.profileImage }} style={styles.cardAvatar} />
         <Text numberOfLines={1} style={styles.cardUser}>
           {post.user.userName}
         </Text>
@@ -91,12 +85,12 @@ export default function PostCard({ post }: { post: PostResponse }) {
               <Image
                 source={{ uri: item.urlImage }}
                 style={{
-                  width: Dimensions.get("window").width,
-                  height: "100%",
+                  flex: 1,
+                  width: "100%",
+                  aspectRatio: 1,
                 }}
                 contentFit="cover"
                 transition={200}
-                placeholder={{ uri: "https://via.placeholder.com/300" }}
               />
             )}
           />
@@ -113,11 +107,7 @@ export default function PostCard({ post }: { post: PostResponse }) {
       <View style={styles.cardActions}>
         <View style={{ flexDirection: "row", gap: 16 }}>
           <Pressable onPress={() => toggleLike(CURRENT_USER_ID, post.id)} hitSlop={10}>
-            <Feather
-              name="heart"
-              color={liked ? "#ef4444" : undefined}
-              size={26}
-            />
+            <Feather name="heart" color={liked ? "#ef4444" : undefined} size={26} />
           </Pressable>
           <Pressable onPress={() => setShowComments(true)} hitSlop={10}>
             <Feather name="message-circle" size={26} />
@@ -127,15 +117,12 @@ export default function PostCard({ post }: { post: PostResponse }) {
           </Pressable>
         </View>
         <Pressable onPress={() => toggleSaved(CURRENT_USER_ID, post.id)} hitSlop={10}>
-          <Feather name="bookmark"
-            color={saved ? "#f59e0b" : undefined}
-            size={26} />
+          <Feather name="bookmark" color={saved ? "#f59e0b" : undefined} size={26} />
         </Pressable>
       </View>
       <View style={styles.cardMeta}>
         <Text style={styles.likeText}>
-          Liked by <Text style={{ fontWeight: "700" }}>thekamraan</Text> and{" "}
-          {likeCount.toLocaleString()} others
+          Liked by <Text style={{ fontWeight: "700" }}>thekamraan</Text> and {likeCount.toLocaleString()} others
         </Text>
         {post.content ? (
           <Text style={styles.captionText} numberOfLines={2}>
@@ -145,9 +132,7 @@ export default function PostCard({ post }: { post: PostResponse }) {
           </Text>
         ) : null}
         <TouchableOpacity onPress={() => setShowComments(true)}>
-          <Text style={styles.viewComments}>
-            View all {post.comments} comments
-          </Text>
+          <Text style={styles.viewComments}>View all {post.comments} comments</Text>
         </TouchableOpacity>
         <Text style={styles.timestamp}>2 hours ago</Text>
       </View>
