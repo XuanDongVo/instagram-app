@@ -17,14 +17,8 @@ import { Comment } from '../../types/comment';
 import { useComments } from '../../hooks/useComments';
 import CommentItem from './CommentItem';
 import CommentInput from './CommentInput';
+import { CommentBottomSheetProps } from '../../types/comment';
 
-interface CommentBottomSheetProps {
-  visible: boolean;
-  onClose: () => void;
-  postId: string;
-  userId: string;
-  initialComments?: Comment[];
-}
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BOTTOM_SHEET_HEIGHT = SCREEN_HEIGHT * 0.8;
@@ -158,6 +152,7 @@ export default function CommentBottomSheet({
 
   const handleReply = (comment: Comment) => {
     setReplyingTo(comment);
+    console.log('Replying to comment:', comment)
   };
 
   const handleDeleteComment = async (commentId: string) => {

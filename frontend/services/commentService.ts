@@ -6,8 +6,8 @@ export class CommentService {
   static async getComments(postId: string, currentUserId?: string): Promise<Comment[]> {
     try {
       const url = currentUserId 
-        ? `/api/v1/comments/post/${postId}?currentUserId=${currentUserId}`
-        : `/api/v1/comments/post/${postId}`;
+        ? `v1/comments/post/${postId}?currentUserId=${currentUserId}`
+        : `v1/comments/post/${postId}`;
         
       const response = await ApiService.get<ApiResponse<Comment[]>>(url);
       return response.data;
@@ -21,7 +21,7 @@ export class CommentService {
   static async createComment(CommentRequest: CommentRequest): Promise<Comment> {
     try {
       const response = await ApiService.post<ApiResponse<Comment>>(
-        `/api/v1/comments/`,
+        `v1/comments`,
         CommentRequest
       );
       return response.data;
@@ -35,7 +35,7 @@ export class CommentService {
   static async toggleLike(commentId: string, userId: string): Promise<Comment> {
     try {
       const response = await ApiService.post<ApiResponse<Comment>>(
-        `/api/v1/comments/${commentId}/like?userId=${userId}`
+        `v1/comments/${commentId}/like?userId=${userId}`, null
       );
       return response.data;
     } catch (error) {
@@ -48,7 +48,7 @@ export class CommentService {
   static async getLikesCount(commentId: string): Promise<number> {
     try {
       const response = await ApiService.get<ApiResponse<number>>(
-        `/api/v1/comments/${commentId}/likes/count`
+        `v1/comments/${commentId}/likes/count`
       );
       return response.data;
     } catch (error) {
@@ -61,7 +61,7 @@ export class CommentService {
   static async getLikeStatus(commentId: string, userId: string): Promise<boolean> {
     try {
       const response = await ApiService.get<ApiResponse<boolean>>(
-        `/api/v1/comments/${commentId}/likes/status?userId=${userId}`
+        `v1/comments/${commentId}/likes/status?userId=${userId}`
       );
       return response.data;
     } catch (error) {
@@ -74,7 +74,7 @@ export class CommentService {
   static async deleteComment(commentId: string): Promise<void> {
     try {
       const response = await ApiService.delete<ApiResponse<any>>(
-        `/api/v1/comments/delete/${commentId}`,
+        `v1/comments/delete/${commentId}`,
         { data: null }
       );
       return response.data;
@@ -90,7 +90,7 @@ export class CommentService {
   ): Promise<Comment> {
     try {
       const response = await ApiService.put<ApiResponse<Comment>>(
-        `/api/v1/comments/modify`,
+        `v1/comments/modify`,
         modifyComment
       );
       return response.data;

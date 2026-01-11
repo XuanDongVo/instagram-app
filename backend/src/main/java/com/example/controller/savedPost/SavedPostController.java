@@ -24,8 +24,13 @@ public class SavedPostController {
     private final SavedPostService savedPostService;
 
     @GetMapping()
-    public List<PostResponse> getSavedPost(@RequestParam("id") String currentUserId) {
-        return savedPostService.getSavedPost(currentUserId);
+    public ResponseEntity<ApiResponse<List<PostResponse>>> getSavedPost(@RequestParam("id") String currentUserId) {
+        List<PostResponse> list = savedPostService.getSavedPost(currentUserId);
+        if (list == null) {
+            return ResponseEntity.ok(ApiResponse.error(HttpStatus.NOT_FOUND.value(), "Chưa có saved post nào"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Danh sách save post", list));
     }
 
     @PostMapping("/save")

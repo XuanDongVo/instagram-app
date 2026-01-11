@@ -67,3 +67,33 @@ export interface UserStoryAvatarProps {
   currentUserId?: string | null;
   onPress?: (userId: string, isMyStory: boolean) => void;
 }
+
+// Component Props Interfaces
+export interface CreateStoryModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onPickImage: () => Promise<string | null>;
+  onPickVideo: () => Promise<string | null>;
+  onCreateStory: (mediaUrl: string, mediaType: MediaType) => Promise<void>;
+  loading?: boolean;
+}
+
+export interface StoryCircleProps {
+  userName: string;
+  profileImage?: string;
+  hasStory?: boolean;
+  isViewed?: boolean;
+  isAddStory?: boolean;
+  size?: number;
+  onPress: () => void;
+}
+
+export interface StoryViewerProps {
+  visible: boolean;
+  stories: StoryResponse[];
+  initialIndex?: number;
+  onClose: () => void;
+  onView: (storyId: string) => void;
+  onDelete?: (storyId: string) => void;
+  isMyStory?: boolean;
+}
