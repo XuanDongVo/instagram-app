@@ -23,6 +23,7 @@ export interface PostResponse {
   liked: boolean;
   savedPost: boolean;
   user: UserResponse;
+  status: string;
 }
 
 export interface PostRequest {

@@ -40,6 +40,44 @@ export class PostService {
       throw error;
     }
   }
+
+  static async getAllPost(): Promise<ApiResponse<PostResponse[]>> {
+    try {
+      const response = await api.get<ApiResponse<PostResponse[]>>("/v1/post/all", {});
+      return response.data;
+    } catch (error: any) {
+      console.error(error?.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  static async deletePost(postId: string): Promise<ApiResponse<PostResponse[]>> {
+    try {
+      const response = await api.delete<ApiResponse<PostResponse[]>>(`/v1/post/${postId}`, {
+        params: {
+          id: postId,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error(error?.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  static async updatePostStatus(postId: string, action: "hide" | "active"): Promise<ApiResponse<string>> {
+    try {
+      const response = await api.put<ApiResponse<string>>(`/v1/post/${postId}`, null, {
+        params: {
+          action: action,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error(error?.response?.data || error.message);
+      throw error;
+    }
+  }
 }
 
 export default PostService;
