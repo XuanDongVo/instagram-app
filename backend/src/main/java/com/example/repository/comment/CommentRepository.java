@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface CommentRepository extends JpaRepository<Comment, String> {
+public interface CommentRepository extends JpaRepository<Comment, String>, org.springframework.data.repository.PagingAndSortingRepository<Comment, String> {
     @Query("SELECT c FROM Comment c WHERE c.post.id = :id AND c.parentComment IS NULL order by c.createAt ASC")
     List<Comment> findParentCommentsByPostId(@Param("id") String postId);
 
