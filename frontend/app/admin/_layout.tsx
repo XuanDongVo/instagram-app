@@ -5,9 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 // import { getRoleFromAccessToken } from "../../services/jwt";
 
 export default function AdminLayout() {
-  const [status, setStatus] = useState<"loading" | "allowed" | "denied">(
-    "loading"
-  );
+  const [status, setStatus] = useState<"loading" | "allowed" | "denied">("loading");
 
   useEffect(() => {
     (async () => {
@@ -37,12 +35,13 @@ export default function AdminLayout() {
         headerShadowVisible: false,
         headerStyle: { backgroundColor: "#ffffff" },
         headerTitleStyle: { fontWeight: "800" },
-        headerBackVisible: true, 
-        headerBackTitle: "", 
+        headerBackVisible: true,
+        headerBackTitle: "",
       }}
     >
       <Stack.Screen name="index" options={{ title: "Trang quản trị" }} />
       <Stack.Screen name="users" options={{ title: "Người dùng" }} />
+      <Stack.Screen name="posts" options={{ title: "Bài viết" }} />
     </Stack>
   );
 }
