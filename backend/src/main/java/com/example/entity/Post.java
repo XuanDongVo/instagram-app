@@ -4,19 +4,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.enums.PostStatus;
+import com.example.enums.Role;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Transient;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -54,17 +46,14 @@ public class Post {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PostStatus status;
+
     @Transient
     public int countLikes() {
         return this.likes.size();
     }
-
-//    @Transient
-//    public List<User> getListUserLike() {
-//        List<User> users = new ArrayList<>();
-//        likes.forEach(like -> users.add(like.getUser()));
-//        return users;
-//    }
 
     @Transient
     public int countComment() {
@@ -74,6 +63,7 @@ public class Post {
     @PrePersist
     public void onCreate() {
         this.createAt = LocalDateTime.now();
+        if (status == null) this.status = PostStatus.ACTIVE;
     }
 
 }

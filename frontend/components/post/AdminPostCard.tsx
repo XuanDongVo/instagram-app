@@ -2,69 +2,75 @@ import { PostResponse } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useState, useCallback, useEffect } from "react";
-import { FlatList, Pressable, Text, TouchableOpacity, View, Dimensions, StyleSheet } from "react-native";
+import { FlatList, Pressable, Text, TouchableOpacity, View, Dimensions, StyleSheet, Alert } from "react-native";
 import CommentBottomSheet from "../../components/comments/CommentBottomSheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LikeService } from "@/services/likeService";
-import { savedPostService } from "@/services/savedPostService";
-import { useRouter } from "expo-router";
+import PostService from "@/services/postService";
 
-export default function PostCard({ post }: { post: PostResponse }) {
+interface AdminPostCardProps {
+  post: PostResponse;
+  onDeleteSuccess: (postId: string) => void;
+  onStatusChange: (postId: string, newStatus: string) => void;
+}
+
+export default function AdminPostCard({ post, onDeleteSuccess, onStatusChange }: AdminPostCardProps) {
   const [user, setUser] = useState<any>(null);
   const CURRENT_USER_ID = user?.id || user?.userId;
 
-  // Load user from AsyncStorage
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userString = await AsyncStorage.getItem("currentUser");
-        console.log("User data:", userString);
-        if (userString) {
-          setUser(JSON.parse(userString));
-        }
-      } catch (e) {
-        console.error("Lỗi khi đọc AsyncStorage:", e);
-      }
-    };
-    loadUser();
-  }, []);
+  const handleDelete = () => {
+    Alert.alert("Xác nhận", "Bạn có chắc chắn muốn xóa bài viết này không?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Xóa",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await PostService.deletePost(post.id);
+            onDeleteSuccess(post.id);
+          } catch (e) {
+            Alert.alert("Lỗi", "Không thể xóa bài viết.");
+          }
+        },
+      },
+    ]);
+  };
 
-  const [liked, setLiked] = useState(post.liked);
-  const [saved, setSaved] = useState(post.savedPost);
-  const [likeCount, setLikeCount] = useState(post.likes);
-  const [showComments, setShowComments] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const handleHide = () => {
+    Alert.alert("Xác nhận", "Bạn có chắc chắn muốn ẩn bài viết này không?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Ẩn",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await PostService.updatePostStatus(post.id, "hide");
+            Alert.alert("Ẩn bài viết thành công.");
+            onStatusChange(post.id, "HIDDEN");
+          } catch (e) {
+            Alert.alert("Lỗi", "Không thể ẩn bài viết.");
+          }
+        },
+      },
+    ]);
+  };
 
-  const toggleLike = useCallback(async (user_Id: string, post_Id: string) => {
-    if (!liked) {
-      await LikeService.likePost({ user_Id, post_Id });
-    } else {
-      await LikeService.unlikePost({ user_Id, post_Id });
-    }
-    setLiked((v) => {
-      const next = !v;
-      setLikeCount((c) => (next ? c + 1 : Math.max(0, c - 1)));
-      return next;
-    });
-  }, []);
-
-  const toggleSaved = useCallback(async (userId: string, postId: string) => {
-    if (!saved) {
-      await savedPostService.savePost({ userId, postId });
-    } else {
-      await savedPostService.unsavePost({ userId, postId });
-    }
-    setSaved((v) => !v);
-  }, []);
-
-  const router = useRouter(); // 2. Khởi tạo router
-
-  const handleGoToProfile = () => {
-    // 3. Điều hướng sang trang user khác
-    router.push({
-      pathname: "/user/[userId]" ,
-      params: { userId: post.user.id }, 
-    });
+  const handleActive = () => {
+    Alert.alert("Xác nhận", "Bạn có chắc chắn muốn hiện lại bài viết này không?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Hiện",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await PostService.updatePostStatus(post.id, "active");
+            Alert.alert("Hiện bài viết thành công.");
+            onStatusChange(post.id, "ACTIVE");
+          } catch (e) {
+            Alert.alert("Lỗi", "Không thể hiện bài viết.");
+          }
+        },
+      },
+    ]);
   };
 
   const formatPostTime = (dateString: string) => {
@@ -95,15 +101,46 @@ export default function PostCard({ post }: { post: PostResponse }) {
       return `${day}/${month}/${year}`;
     }
   };
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const userString = await AsyncStorage.getItem("currentUser");
+        if (userString) {
+          setUser(JSON.parse(userString));
+        }
+      } catch (e) {
+        console.error("Lỗi khi đọc AsyncStorage:", e);
+      }
+    };
+    loadUser();
+  }, []);
+
+  const [likeCount, setLikeCount] = useState(post.likes);
+  const [showComments, setShowComments] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   return (
     <View style={styles.card}>
+      {/* Thanh công cụ dành riêng cho Admin */}
+      <View style={styles.adminBar}>
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity style={[styles.adminBtn, styles.hideBtn]} onPress={handleActive}>
+            <Text style={styles.btnText}>Hiện bài</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.adminBtn, styles.hideBtn]} onPress={handleHide}>
+            <Text style={styles.btnText}>Ẩn bài</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.adminBtn, styles.deleteBtn]} onPress={handleDelete}>
+            <Text style={[styles.btnText, { color: "white" }]}>Xóa vĩnh viễn</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.cardHeader}>
-        <TouchableOpacity onPress={handleGoToProfile}>
-          <Image
-            source={{ uri: post.user.profileImage }}
-            style={styles.cardAvatar}
-          />
-        </TouchableOpacity>
+        <Image source={{ uri: post.user.profileImage }} style={styles.cardAvatar} />
         <Text numberOfLines={1} style={styles.cardUser}>
           {post.user.userName}
         </Text>
@@ -148,26 +185,9 @@ export default function PostCard({ post }: { post: PostResponse }) {
           )}
         </View>
       )}
-      <View style={styles.cardActions}>
-        <View style={{ flexDirection: "row", gap: 16 }}>
-          <Pressable onPress={() => toggleLike(CURRENT_USER_ID, post.id)} hitSlop={10}>
-            <Feather name="heart" color={liked ? "#ef4444" : undefined} size={26} />
-          </Pressable>
-          <Pressable onPress={() => setShowComments(true)} hitSlop={10}>
-            <Feather name="message-circle" size={26} />
-          </Pressable>
-          <Pressable hitSlop={10}>
-            <Feather name="send" size={26} />
-          </Pressable>
-        </View>
-        <Pressable onPress={() => toggleSaved(CURRENT_USER_ID, post.id)} hitSlop={10}>
-          <Feather name="bookmark" color={saved ? "#f59e0b" : undefined} size={26} />
-        </Pressable>
-      </View>
+      <View style={styles.cardActions}></View>
       <View style={styles.cardMeta}>
-        <Text style={styles.likeText}>
-          Liked by <Text style={{ fontWeight: "700" }}>thekamraan</Text> and {likeCount.toLocaleString()} others
-        </Text>
+        <Text style={styles.likeText}>Liked by {likeCount.toLocaleString()} others</Text>
         {post.content ? (
           <Text style={styles.captionText} numberOfLines={2}>
             <Text style={styles.cardUser}>{post.user.userName} </Text>
@@ -246,4 +266,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  adminBar: {
+    padding: 12,
+    backgroundColor: "#f9f9f9",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+  },
+  buttonGroup: { flexDirection: "row", gap: 8 },
+  adminBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    justifyContent: "center",
+  },
+  hideBtn: { backgroundColor: "#e5e7eb" },
+  deleteBtn: { backgroundColor: "#ef4444" },
+  btnText: { fontSize: 12, fontWeight: "bold" },
 });

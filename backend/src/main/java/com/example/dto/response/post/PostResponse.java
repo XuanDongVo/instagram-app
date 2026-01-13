@@ -25,5 +25,6 @@ public class PostResponse {
     private int likes;
     private boolean liked;
     private boolean savedPost;
+    private String status;
     private UserResponse user;
 }

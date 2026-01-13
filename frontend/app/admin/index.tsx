@@ -16,6 +16,12 @@ export default function AdminHome() {
         onPress: () => router.push("/admin/users" as any),
       },
       {
+        title: "Quản lý bài viết",
+        desc: "Xem danh sách, xoá bài viết",
+        icon: "document" as const,
+        onPress: () => router.push("/admin/posts" as any),
+      },
+      {
         title: "Đăng xuất",
         desc: "Thoát khỏi khu vực quản trị",
         icon: "log-out-outline" as const,

@@ -1,4 +1,5 @@
 package com.example.mapper;
+import com.example.enums.PostStatus;
 import org.springframework.context.annotation.Lazy;
 import com.example.dto.request.UpPostRequest;
 import com.example.dto.response.post.PostResponse;
@@ -43,6 +44,7 @@ public class PostMapper {
                 .likes(post.getLikes().size())
                 .liked(isLiked)
                 .savedPost(isSavedPost)
+                .status(post.getStatus().name())
                 .user(userMapper.toUserResponse(post.getUser()))
                 .build();
     }
@@ -65,6 +67,7 @@ public class PostMapper {
             images.add(img);
         }
         post.setPostImages(images);
+        post.setStatus(PostStatus.ACTIVE);
         // set user
         Optional<User> u = user_repo.findById(request.getUser_Id());
         if (u.isEmpty()) {

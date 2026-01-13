@@ -23,13 +23,24 @@ public class PostController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<PostResponse>>> getAllPost(@RequestParam("id") String currentUserId) {
-        List<PostResponse> postResponse = postService.getAllPosts(currentUserId);
+        List<PostResponse> postResponse = postService.getPosts(currentUserId);
         if (postResponse == null) {
             return ResponseEntity.ok(ApiResponse.error(HttpStatus.NOT_FOUND.value(), "Chưa có post nào"));
         }
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
                 "Danh sách gồm " + postResponse.size() + " bài post", postResponse));
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<PostResponse>>> getPosts() {
+        List<PostResponse> postResponse = postService.getAllPost();
+        if (postResponse == null) {
+            return ResponseEntity.ok(ApiResponse.error(HttpStatus.NOT_FOUND.value(), "Chưa có post nào"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Danh sách gồm " + postResponse.size() + " bài post", postResponse));
+    }
+
 
     @GetMapping("/minePost")
     public ResponseEntity<ApiResponse<List<PostResponse>>> getMyPosts(@RequestParam("id") String currentUserId) {
@@ -47,12 +58,26 @@ public class PostController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Post successfully", post.getId()));
     }
 
-    @DeleteMapping
-    public ResponseEntity<ApiResponse<String>> deletePost(@RequestParam("postId") String postId) {
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<ApiResponse<String>> deletePost(@PathVariable("postId") String postId) {
         postService.deletePost(postId);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
                 "Delete post id =" + postId + " success", null));
     }
+
+    @PutMapping("/{postId}")
+    public ResponseEntity<ApiResponse<String>> updatePostStatus(
+            @PathVariable("postId") String postId,
+            @RequestParam("action") String action) {
+        if ("hide".equalsIgnoreCase(action)) {
+            postService.hidePost(postId);
+        } else if ("active".equalsIgnoreCase(action)){
+            postService.activePost(postId);
+        }
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(),
+                "Delete post id =" + postId + " success", null));
+    }
+
 
     @GetMapping("/saved")
     public ResponseEntity<ApiResponse<List<PostProfileResponse>>> getSavedPosts(@RequestParam("userId") String userId) {
