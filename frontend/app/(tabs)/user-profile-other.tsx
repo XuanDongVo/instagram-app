@@ -19,6 +19,8 @@ import FollowerListModal from "../../components/profile/FollowerListModal";
 import { profileService } from "../../services/profileService";
 import { UserResponse } from "../../types/user";
 import { ModalUser, UserProfileState } from "../../types/user";
+import { router } from "expo-router";
+
 
 // ===== STORY =====
 import { useStory } from "@/hooks/useStory";
@@ -195,8 +197,18 @@ export default function UserProfileScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.topHeader}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>{user.username}</Text>
+
+        {/* placeholder để căn giữa title */}
+        <View style={{ width: 24 }} />
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.usernameHeader}>{user.username}</Text>
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.avatarContainer}
@@ -382,4 +394,20 @@ const styles = StyleSheet.create({
   tabButton: { flex: 1, paddingVertical: 12, alignItems: "center" },
   activeTab: { borderBottomWidth: 1, borderBottomColor: "#000" },
   usernameHeader: { fontWeight: "600", fontSize: 19 },
+  topHeader: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingHorizontal: 15,
+  paddingVertical: 10,
+  borderBottomWidth: 0.5,
+  borderBottomColor: "#ddd",
+  backgroundColor: "#fff",
+},
+
+headerTitle: {
+  fontSize: 16,
+  fontWeight: "600",
+},
+
 });
