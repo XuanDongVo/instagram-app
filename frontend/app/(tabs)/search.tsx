@@ -61,11 +61,9 @@ export default function SearchScreen() {
     } else {
       setfilteredSearchUsers([]);
     }
-  }, [searchQuery, posts]);
+  }, [searchQuery]);
 
   const loadPosts = async () => {
-    if (!user?.id) return;
-
     try {
       setLoading(true);
       const allPosts = await PostService.getAllPosts();
