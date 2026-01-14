@@ -4,7 +4,6 @@ import { Tabs } from "expo-router";
 import { HapticTab } from "@/components/haptic-tab";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import UserProfileScreen from "@/components/profile/UserProfileScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -57,6 +56,18 @@ export default function TabLayout() {
           options={{
             href: null,
             headerShown: true,
+          }}
+        />
+        <Tabs.Screen
+          name="user/[userId]" 
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="user-profile-other" 
+          options={{
+            href: null,
           }}
         />
       </Tabs>

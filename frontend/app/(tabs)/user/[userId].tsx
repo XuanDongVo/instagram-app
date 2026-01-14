@@ -1,7 +1,7 @@
 import React from "react";
 import { Text } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import UserProfileScreen from "@/components/profile/UserProfileScreen";
+import UserProfileScreen from "@/app/(tabs)/user-profile-other";
 
 export default function UserPage() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
