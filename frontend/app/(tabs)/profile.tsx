@@ -45,6 +45,7 @@ export default function Profile() {
   const [posts, setPosts] = useState<PostResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [savedPosts, setSavedPosts] = useState<PostResponse[]>([]);
 
   /** ================= UI ================= */
   const [menuVisible, setMenuVisible] = useState(false);
@@ -175,7 +176,7 @@ export default function Profile() {
   const fetchSavedPosts = async () => {
     if (!currentUserId) return;
     const saved = await savedPostService.getSavedPostsByUserId(currentUserId);
-    setPosts(saved.map((sp) => ({ ...sp, images: sp.images })));
+    setSavedPosts(saved);
   };
 
   /** ================= LOGOUT ================= */
@@ -288,7 +289,7 @@ export default function Profile() {
 
         {/* POSTS */}
         <FlatList
-          data={posts}
+          data={activeTab === "grid" ? posts : savedPosts}
           numColumns={3}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
