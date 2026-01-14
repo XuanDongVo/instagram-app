@@ -2,7 +2,7 @@ import { userFirebaseService } from "@/services/userFirebaseService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRoute } from "@react-navigation/native";
 import { router } from "expo-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, use } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   Dimensions,
@@ -46,6 +46,7 @@ export default function Profile() {
 
   const [user, setUser] = useState<UserProfileState | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
+  const [savedPosts, setSavedPosts] = useState<PostResponse[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
@@ -344,17 +345,24 @@ export default function Profile() {
   const fetchSavedPosts = useCallback(async () => {
     if (!currentUserId) return;
     try {
-      const savedPosts = await savedPostService.getSavedPostsByUserId(profileId || "");
-      console.log("Saved posts fetched:", savedPosts);
-      setPosts(
-        savedPosts.map((sp) => ({
-          id: sp.id,
-          imageUrl: sp.images[0]?.urlImage || "",
-        }))
-      );
+
+      setPosts(savedPosts);
     } catch (error) {
       console.error("Lỗi getSavedPosts:", error);
     }
+  }, [profileId]);
+
+  useEffect(() => {
+    async function fetchSavePosts() {
+      if (!currentUserId) return;
+      try {
+        const savedPosts = await savedPostService.getSavedPostsByUserId(profileId || "");
+        setSavedPosts(savedPosts);
+      } catch (error) {
+        console.error("Lỗi getSavedPosts:", error);
+      }
+    }
+    fetchSavePosts();
   }, [profileId]);
 
   if (isLoading || !isCurrentUserIdLoaded) {
@@ -511,7 +519,6 @@ export default function Profile() {
               style={[styles.tabButton, activeTab === "tagged" && styles.activeTab]}
               onPress={() => {
                 setActiveTab("tagged");
-                fetchSavedPosts();
               }}
             >
               <Ionicons
@@ -525,7 +532,7 @@ export default function Profile() {
 
         {/* Posts Grid */}
         <FlatList
-          data={posts}
+          data={activeTab == "grid" ? posts : savedPosts}
           numColumns={3}
           renderItem={renderPost}
           keyExtractor={(item) => item.id}

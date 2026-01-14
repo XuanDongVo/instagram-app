@@ -21,6 +21,7 @@ import java.util.List;
 public class PostController {
     private final PostService postService;
 
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<PostResponse>>> getAllPost(@RequestParam("id") String currentUserId) {
         List<PostResponse> postResponse = postService.getPosts(currentUserId);
@@ -33,7 +34,7 @@ public class PostController {
 
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<List<PostResponse>>> getPosts() {
-        List<PostResponse> postResponse = postService.getAllPost();
+        List<PostResponse> postResponse = postService.getAllPosts();
         if (postResponse == null) {
             return ResponseEntity.ok(ApiResponse.error(HttpStatus.NOT_FOUND.value(), "Chưa có post nào"));
         }

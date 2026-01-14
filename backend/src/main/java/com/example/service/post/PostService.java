@@ -28,7 +28,7 @@ public class PostService {
     private final SavedPostDetailRepository savedPostDetailRepository;
     private final List<PostStatus> userSideStatus = List.of(PostStatus.HIDDEN, PostStatus.DELETED);
 
-    public List<PostResponse> getAllPost() {
+    public List<PostResponse> getAllPosts() {
         List<Post> posts = repo.findByStatusNot(PostStatus.DELETED, Sort.by(Sort.Direction.DESC, "createAt"));
         List<PostResponse> rs = new ArrayList<>();
         for (Post p : posts) {

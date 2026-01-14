@@ -8,8 +8,11 @@ import {
   Text,
   RefreshControl,
   Alert,
+  Modal,
+  TouchableOpacity,
   FlatList,
 } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
 import { SearchBar } from '@/components/search/SearchBar';
 import { PostGrid } from '@/components/search/PostGrid';
 import { UserSearchItem } from '@/components/search/UserSearchItem';
@@ -23,6 +26,8 @@ import { StoryViewer } from '@/components/story/StoryViewer';
 import { useStory } from '@/hooks/useStory';
 import { StoryResponse } from '@/types/story';
 import { router } from 'expo-router';
+import PostService from '@/services/postService';
+import PostCard from '@/components/post/PostCard';
 
 export default function SearchScreen() {
   const colorScheme = useColorScheme();
@@ -43,6 +48,9 @@ export default function SearchScreen() {
   const [viewerIndex, setViewerIndex] = useState(0);
   const [isMyStoryViewer, setIsMyStoryViewer] = useState(false);
 
+  const [selectedPost, setSelectedPost] = useState<PostResponse | null>(null);
+  const [isPostModalVisible, setIsPostModalVisible] = useState(false);
+
   useEffect(() => {
     loadPosts();
   }, []);
@@ -60,7 +68,9 @@ export default function SearchScreen() {
 
     try {
       setLoading(true);
-
+      const allPosts = await PostService.getAllPosts();
+      console.log('All posts:', allPosts);
+      setPosts(allPosts.data || []);
     } catch (error) {
       setPosts([]);
     } finally {
@@ -96,7 +106,8 @@ export default function SearchScreen() {
   };
 
   const handlePostPress = (post: PostResponse) => {
-    Alert.alert('Post', `Viewing post by ${post.user.userName}`);
+    setSelectedPost(post);
+    setIsPostModalVisible(true);
   };
 
   const handleStoryPress = (userId: string, isMyStory: boolean) => {
@@ -115,6 +126,7 @@ export default function SearchScreen() {
   const handleProfileUserPress = (userId: string) => {
     router.push(`/user/${userId}`);
   };
+
 
   return (
     <SafeAreaView
@@ -198,6 +210,7 @@ export default function SearchScreen() {
             )}
 
             {!loading && posts.length > 0 && (
+
               <PostGrid posts={posts} onPostPress={handlePostPress} />
             )}
           </>
@@ -213,6 +226,32 @@ export default function SearchScreen() {
         onDelete={isMyStoryViewer ? deleteStory : undefined}
         isMyStory={isMyStoryViewer}
       />
+
+      <Modal visible={isPostModalVisible} animationType="slide" onRequestClose={() => setIsPostModalVisible(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+          {/* Header để đóng Modal */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 15,
+              height: 50,
+              borderBottomWidth: 0.5,
+              borderColor: "#dbdbdb",
+            }}
+          >
+            <TouchableOpacity onPress={() => setIsPostModalVisible(false)}>
+              <Ionicons name="arrow-back" size={28} color="black" />
+            </TouchableOpacity>
+            <Text style={{ marginLeft: 20, fontWeight: "700", fontSize: 16 }}>Bài viết</Text>
+          </View>
+
+          {/* Hiển thị PostCard */}
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {selectedPost && <PostCard post={selectedPost} />}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
