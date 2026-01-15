@@ -10,7 +10,7 @@ const ITEM_SIZE = (width - 4) / 3; // 3 columns with 2px gap
 
 export function PostGrid({ posts, onPostPress }: PostGridProps) {
   const renderGridItem = (post: PostResponse, index: number) => {
-    const firstImage = post.images?.[0]?.imageUrl;
+    const firstImage = post.images?.[0]?.urlImage;
     const hasMultipleImages = post.images && post.images.length > 1;
 
     return (

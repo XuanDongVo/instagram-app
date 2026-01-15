@@ -1,3 +1,4 @@
+
 package com.example.service.comment;
 
 import com.example.dto.request.CommentRequestDTO;
@@ -27,6 +28,15 @@ public class CommentService {
     private final CommentMapper commentMapper;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+
+        // Lấy tất cả bình luận với phân trang cho admin
+    public List<CommentResponseDTO> getAllCommentsPaged(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("createAt").descending());
+        var commentPage = commentRepository.findAll(pageable);
+        return commentPage.getContent().stream()
+                .map(comment -> commentMapper.mapToDto(comment, null, null))
+                .toList();
+    }
 
     public List<CommentResponseDTO> getCommentInPost(String postId) {
         return getCommentInPost(postId, null);
