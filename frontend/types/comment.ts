@@ -59,3 +59,10 @@ export interface EditCommentModalProps {
   onSave: (newContent: string) => void;
   onCancel: () => void;
 }
+
+export interface CommentActionSheetProps {
+  visible: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onCancel: () => void;
+}

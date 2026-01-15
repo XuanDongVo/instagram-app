@@ -1,13 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-interface CommentActionSheetProps {
-  visible: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-  onCancel: () => void;
-}
+import type { CommentActionSheetProps } from '../../types/comment';
 
 export default function CommentActionSheet({ visible, onEdit, onDelete, onCancel }: CommentActionSheetProps) {
   return (
