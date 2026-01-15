@@ -1,20 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios, {
-  AxiosError,
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosRequestHeaders,
-  AxiosResponse,
-} from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosRequestHeaders, AxiosResponse } from "axios";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
+const LAPTOP_IP = "192.168.1.5";
 
-// const LAPTOP_IP = "192.168.1.5";
-const LAPTOP_IP = "10.0.2.2";
-
-
-const getBaseUrl = () => {
+export const getBaseUrl = () => {
   if (Platform.OS === "web") {
     return "http://localhost:8080/api";
   }
@@ -40,7 +31,6 @@ const getBaseUrl = () => {
 
 const BASE_URL = getBaseUrl();
 console.log("🔍 BASE_URL đang dùng:", BASE_URL);
-
 
 export const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -81,21 +71,19 @@ api.interceptors.request.use(
   async (config) => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
-      
+
       // List of endpoints that don't need authentication
       const publicEndpoints = [
         "/auth/register",
-        "/auth/login", 
+        "/auth/login",
         "/auth/refresh-token",
         "/auth/send-otp",
         "/auth/verify-otp",
         "/auth/reset-password",
-        "/auth/check-email"
+        "/auth/check-email",
       ];
 
-      const isPublicEndpoint = publicEndpoints.some(endpoint => 
-        config.url?.includes(endpoint)
-      );
+      const isPublicEndpoint = publicEndpoints.some((endpoint) => config.url?.includes(endpoint));
 
       // Add authorization header for protected endpoints
       if (!isPublicEndpoint && token && token !== "null" && token !== "undefined" && token.trim() !== "") {
@@ -111,7 +99,7 @@ api.interceptors.request.use(
         config.headers["X-App-Version"] = Constants.expoConfig?.version || "1.0.0";
       }
 
-      // Add request timestamp for debugging  
+      // Add request timestamp for debugging
       (config as any).metadata = { startTime: Date.now() };
 
       return config;
@@ -129,16 +117,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse => {
     // Log successful responses
-    const duration = (response.config as any)?.metadata?.startTime 
-      ? Date.now() - (response.config as any).metadata.startTime 
+    const duration = (response.config as any)?.metadata?.startTime
+      ? Date.now() - (response.config as any).metadata.startTime
       : 0;
-    
 
     return response;
   },
   async (error: AxiosError): Promise<any> => {
-    const originalRequest: AxiosRequestConfig & { _retry?: boolean } =
-      error.config || {};
+    const originalRequest: AxiosRequestConfig & { _retry?: boolean } = error.config || {};
 
     // Check for 401 Unauthorized and avoid infinite retry loop
     if (
@@ -165,7 +151,7 @@ api.interceptors.response.use(
 
           if (responseData.success && responseData.data) {
             accessToken = responseData.data.accessToken;
-            newRefreshToken = responseData.data.refreshToken || refreshToken; 
+            newRefreshToken = responseData.data.refreshToken || refreshToken;
           } else if (responseData.accessToken) {
             // If backend returns AuthResponse directly
             accessToken = responseData.accessToken;
