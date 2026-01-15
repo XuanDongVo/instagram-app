@@ -11,110 +11,78 @@ import {
   ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRoute } from "@react-navigation/native";
+import { useRoute, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 
 import FollowerListModal from "../../components/profile/FollowerListModal";
 import { profileService } from "../../services/profileService";
-import { UserResponse } from "../../types/user";
-import { ModalUser, UserProfileState } from "../../types/user";
-import { router } from "expo-router";
-
+import { UserResponse, ModalUser, UserProfileState } from "../../types/user";
 
 // ===== STORY =====
 import { useStory } from "@/hooks/useStory";
-import { CreateStoryModal } from "@/components/story/CreateStoryModal";
 import { StoryViewer } from "@/components/story/StoryViewer";
 import { StoryResponse } from "@/types/story";
 
 const screenWidth = Dimensions.get("window").width;
+const DEFAULT_AVATAR =
+  "https://velle.vn/wp-content/uploads/2025/04/avatar-mac-dinh-4-2.jpg";
 
-export default function UserProfileScreen() {
+export default function UserProfileOtherScreen() {
   const route = useRoute();
   const profileId = (route.params as { userId?: string })?.userId ?? null;
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [isCurrentUserIdLoaded, setIsCurrentUserIdLoaded] = useState(false);
-
   const [user, setUser] = useState<UserProfileState | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
+
+  const [myFollowingIds, setMyFollowingIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<"grid" | "saved">("grid");
+
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"grid">("grid");
+  const [loading, setLoading] = useState(true);
 
   const isMyProfile = profileId === currentUserId;
 
-  // ===== STORY HOOK =====
-  const {
-    stories,
-    myStories,
-    loading: storyLoading,
-    currentUserId: storyCurrentUserId,
-    createStory,
-    viewStory,
-    deleteStory,
-    pickImage,
-    pickVideo,
-    loadStories,
-    loadMyStories,
-  } = useStory();
-
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showViewer, setShowViewer] = useState(false);
-  const [viewerStories, setViewerStories] = useState<StoryResponse[]>([]);
-  const [viewerIndex, setViewerIndex] = useState(0);
-  const [isMyStoryViewer, setIsMyStoryViewer] = useState(false);
-
-  const userStories = profileId
-    ? stories.filter((s) => s.user.id === profileId)
-    : [];
-
-  const hasStories = isMyProfile
-    ? myStories.length > 0
-    : userStories.length > 0;
-
-  const handleStoryPress = () => {
-    if (isMyProfile) {
-      if (myStories.length > 0) {
-        setViewerStories(myStories);
-        setViewerIndex(0);
-        setIsMyStoryViewer(true);
-        setShowViewer(true);
-      } else {
-        setShowCreateModal(true);
-      }
-    } else if (userStories.length > 0) {
-      setViewerStories(userStories);
-      setViewerIndex(0);
-      setIsMyStoryViewer(false);
-      setShowViewer(true);
-    }
-  };
-
-  // ===== LOAD CURRENT USER =====
+  // ================= LOAD CURRENT USER =================
   useEffect(() => {
-    const loadCurrentUserId = async () => {
-      try {
-        const currentUserString = await AsyncStorage.getItem("currentUser");
-        if (currentUserString) {
-          const cu = JSON.parse(currentUserString);
-          setCurrentUserId(cu.id);
-        }
-      } finally {
-        setIsCurrentUserIdLoaded(true);
-      }
+    const load = async () => {
+      const raw = await AsyncStorage.getItem("currentUser");
+      if (raw) setCurrentUserId(JSON.parse(raw).id);
     };
-    loadCurrentUserId();
+    load();
   }, []);
 
-  // ===== LOAD PROFILE =====
-  const fetchProfileData = useCallback(async () => {
+  // ================= LOAD MY FOLLOWING =================
+  useFocusEffect(
+    useCallback(() => {
+      if (!currentUserId) return;
+
+      let active = true;
+
+      const reloadMyFollowing = async () => {
+        const list = await profileService.getFollowing(currentUserId);
+        if (active) {
+          setMyFollowingIds(new Set(list.map((u) => u.id)));
+        }
+      };
+
+      reloadMyFollowing();
+
+      return () => {
+        active = false;
+      };
+    }, [currentUserId])
+  );
+
+  // ================= LOAD PROFILE =================
+  const fetchProfile = useCallback(async () => {
     if (!profileId) return;
-    setIsLoading(true);
+
+    setLoading(true);
     try {
       const data = await profileService.getUserProfile(profileId);
 
@@ -123,99 +91,133 @@ export default function UserProfileScreen() {
         username: data.userName,
         fullName: data.fullName,
         bio: data.bio ?? "",
-        avatar:
-          data.avatarUrl ||
-          "https://velle.vn/wp-content/uploads/2025/04/avatar-mac-dinh-4-2.jpg",
+        avatar: data.avatarUrl || DEFAULT_AVATAR,
         followers: data.followersCount,
         following: data.followingCount,
       });
 
       setIsFollowing(data.following);
 
-      const dummyPosts = Array.from({ length: 12 }).map((_, i) => ({
-        id: i.toString(),
-        imageUrl: `https://picsum.photos/id/${100 + i}/400/400`,
-      }));
-      setPosts(dummyPosts);
-    } catch (e) {
-      setFetchError("Không thể tải hồ sơ.");
+      setPosts(
+        Array.from({ length: 12 }).map((_, i) => ({
+          id: String(i),
+          imageUrl: `https://picsum.photos/id/${100 + i}/400/400`,
+        }))
+      );
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [profileId]);
 
   useEffect(() => {
-    if (isCurrentUserIdLoaded && profileId) {
-      fetchProfileData();
-    }
-  }, [fetchProfileData, isCurrentUserIdLoaded, profileId]);
+    if (currentUserId && profileId) fetchProfile();
+  }, [fetchProfile, currentUserId, profileId]);
 
-  // ===== LOAD STORIES =====
-  useEffect(() => {
-    if (storyCurrentUserId) {
-      loadStories();
-      loadMyStories();
-    }
-  }, [storyCurrentUserId]);
-
-  const handleFollowToggle = async () => {
-    if (!user || !currentUserId) return;
+  // ================= FOLLOW / UNFOLLOW =================
+  const toggleFollow = async () => {
+    if (!currentUserId || !user) return;
 
     if (isFollowing) {
       await profileService.unfollowUser(currentUserId, user.id);
       setIsFollowing(false);
-      setUser((p) => (p ? { ...p, followers: p.followers - 1 } : p));
+      setUser((p) => p && { ...p, followers: p.followers - 1 });
+
+      setMyFollowingIds((s) => {
+        const n = new Set(s);
+        n.delete(user.id);
+        return n;
+      });
     } else {
       await profileService.followUser(currentUserId, user.id);
       setIsFollowing(true);
-      setUser((p) => (p ? { ...p, followers: p.followers + 1 } : p));
+      setUser((p) => p && { ...p, followers: p.followers + 1 });
+
+      setMyFollowingIds((s) => new Set(s).add(user.id));
     }
   };
 
-  const renderPost = ({ item }: { item: any }) => (
-    <View style={styles.postItem}>
-      <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
-    </View>
+  // ================= MODAL FETCHERS =================
+  const fetchFollowers = async (): Promise<ModalUser[]> => {
+    if (!profileId) return [];
+
+    const users: UserResponse[] =
+      await profileService.getFollowers(profileId);
+
+    return users.map((u) => ({
+      id: u.id,
+      username: u.userName,
+      avatar: { uri: u.profileImage || DEFAULT_AVATAR },
+      isFollowing: myFollowingIds.has(u.id),
+    }));
+  };
+
+  const fetchFollowing = async (): Promise<ModalUser[]> => {
+    if (!profileId) return [];
+
+    const users: UserResponse[] =
+      await profileService.getFollowing(profileId);
+
+    return users.map((u) => ({
+      id: u.id,
+      username: u.userName,
+      avatar: { uri: u.profileImage || DEFAULT_AVATAR },
+      isFollowing: myFollowingIds.has(u.id),
+    }));
+  };
+
+  // ================= STORY (CHỈ THÊM) =================
+  const { stories, loadStories, viewStory } = useStory();
+
+  const [showViewer, setShowViewer] = useState(false);
+  const [viewerStories, setViewerStories] = useState<StoryResponse[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadStories();
+    }, [])
   );
 
-  if (isLoading || !isCurrentUserIdLoaded) {
+  const userStories = stories.filter(
+    (s) => s.user?.id === profileId
+  );
+
+  const hasStories = userStories.length > 0;
+  const allViewed = hasStories && userStories.every((s) => s.viewed);
+
+  const handleStoryPress = () => {
+    if (!hasStories) return;
+    setViewerStories(userStories);
+    setViewerIndex(0);
+    setShowViewer(true);
+  };
+
+  // ================= UI =================
+  if (loading || !user) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
-        <Text>Đang tải hồ sơ...</Text>
-      </View>
-    );
-  }
-
-  if (fetchError || !user) {
-    return (
-      <View style={styles.center}>
-        <Text>{fetchError}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* HEADER */}
       <View style={styles.topHeader}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} />
         </TouchableOpacity>
-
         <Text style={styles.headerTitle}>{user.username}</Text>
-
-        {/* placeholder để căn giữa title */}
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView>
+        {/* PROFILE */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.avatarContainer}
-            onPress={handleStoryPress}
-          >
+          <TouchableOpacity onPress={handleStoryPress}>
             {hasStories ? (
-              userStories.every((s) => s.viewed) && !isMyProfile ? (
+              allViewed ? (
                 <View style={styles.viewedRing}>
                   <Image source={{ uri: user.avatar }} style={styles.avatar} />
                 </View>
@@ -225,10 +227,7 @@ export default function UserProfileScreen() {
                   style={styles.gradientRing}
                 >
                   <View style={styles.innerRing}>
-                    <Image
-                      source={{ uri: user.avatar }}
-                      style={styles.avatar}
-                    />
+                    <Image source={{ uri: user.avatar }} style={styles.avatar} />
                   </View>
                 </LinearGradient>
               )
@@ -237,46 +236,46 @@ export default function UserProfileScreen() {
             )}
           </TouchableOpacity>
 
-
           <View style={styles.stats}>
             <View style={styles.statBlock}>
               <Text style={styles.statNumber}>{posts.length}</Text>
-              <Text style={styles.statLabel}>posts</Text>
+              <Text>posts</Text>
             </View>
 
             <TouchableOpacity onPress={() => setShowFollowers(true)}>
               <View style={styles.statBlock}>
                 <Text style={styles.statNumber}>{user.followers}</Text>
-                <Text style={styles.statLabel}>followers</Text>
+                <Text>followers</Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => setShowFollowing(true)}>
               <View style={styles.statBlock}>
                 <Text style={styles.statNumber}>{user.following}</Text>
-                <Text style={styles.statLabel}>following</Text>
+                <Text>following</Text>
               </View>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* INFO */}
         <View style={styles.infoSection}>
           <Text style={styles.fullName}>{user.fullName}</Text>
-          {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+          {!!user.bio && <Text>{user.bio}</Text>}
 
           {!isMyProfile && (
             <TouchableOpacity
+              onPress={toggleFollow}
               style={[
                 styles.followBtn,
                 isFollowing ? styles.followingBtn : styles.followActive,
               ]}
-              onPress={handleFollowToggle}
             >
               <Text
-                style={[
-                  styles.followBtnText,
-                  isFollowing ? styles.followingText : styles.followText,
-                ]}
+                style={{
+                  color: isFollowing ? "#000" : "#fff",
+                  fontWeight: "600",
+                }}
               >
                 {isFollowing ? "Following" : "Follow"}
               </Text>
@@ -284,50 +283,81 @@ export default function UserProfileScreen() {
           )}
         </View>
 
+        {/* TAB */}
         <View style={styles.tabContainer}>
-          <TouchableOpacity style={[styles.tabButton, activeTab === "grid" && styles.activeTab]} onPress={() => setActiveTab("grid")}>
-            <Ionicons name={activeTab === "grid" ? "grid" : "grid-outline"} size={24} color={activeTab === "grid" ? "#000" : "#8e8e8e"} />
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "grid" && styles.activeTab,
+            ]}
+            onPress={() => setActiveTab("grid")}
+          >
+            <Ionicons
+              name="grid"
+              size={24}
+              color={activeTab === "grid" ? "#000" : "#8e8e8e"}
+            />
           </TouchableOpacity>
         </View>
 
+        {/* POSTS */}
         <FlatList
           data={posts}
           numColumns={3}
-          renderItem={renderPost}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(i) => i.id}
           scrollEnabled={false}
+          renderItem={({ item }) => (
+            <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
+          )}
         />
       </ScrollView>
 
-      {/* ===== STORY MODALS ===== */}
-      <CreateStoryModal
-        visible={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onPickImage={pickImage}
-        onPickVideo={pickVideo}
-        onCreateStory={createStory}
-        loading={storyLoading}
+      {/* FOLLOW MODALS */}
+      <FollowerListModal
+        visible={showFollowers}
+        title="Followers"
+        onClose={() => setShowFollowers(false)}
+        fetchUsers={fetchFollowers}
+        currentUserId={currentUserId!}
+        isMyProfile={false}
       />
 
+      <FollowerListModal
+        visible={showFollowing}
+        title="Following"
+        onClose={() => setShowFollowing(false)}
+        fetchUsers={fetchFollowing}
+        currentUserId={currentUserId!}
+        isMyProfile={false}
+      />
+
+      {/* STORY VIEWER */}
       <StoryViewer
         visible={showViewer}
         stories={viewerStories}
         initialIndex={viewerIndex}
         onClose={() => setShowViewer(false)}
         onView={viewStory}
-        onDelete={isMyStoryViewer ? deleteStory : undefined}
-        isMyStory={isMyStoryViewer}
+        isMyStory={false}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingTop: 10 },
+  container: { flex: 1, backgroundColor: "#fff" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
+  topHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 12,
+    borderBottomWidth: 0.5,
+    borderColor: "#ddd",
+  },
+  headerTitle: { fontWeight: "600", fontSize: 16 },
+
   header: { flexDirection: "row", padding: 15 },
-  avatarContainer: { marginRight: 30 },
   avatar: { width: 88, height: 88, borderRadius: 44 },
 
   gradientRing: {
@@ -360,15 +390,13 @@ const styles = StyleSheet.create({
 
   stats: { flex: 1, flexDirection: "row", justifyContent: "space-around" },
   statBlock: { alignItems: "center" },
-  statNumber: { fontWeight: "600", fontSize: 17 },
-  statLabel: { fontSize: 13 },
+  statNumber: { fontWeight: "600", fontSize: 16 },
 
   infoSection: { paddingHorizontal: 15 },
-  fullName: { fontWeight: "600", fontSize: 15 },
-  bio: { marginTop: 5 },
+  fullName: { fontWeight: "600" },
 
   followBtn: {
-    marginTop: 12,
+    marginTop: 10,
     paddingVertical: 7,
     borderRadius: 8,
     alignItems: "center",
@@ -377,37 +405,27 @@ const styles = StyleSheet.create({
   followingBtn: {
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#dbdbdb",
+    borderColor: "#ccc",
   },
-  followBtnText: { fontWeight: "600" },
-  followText: { color: "#fff" },
-  followingText: { color: "#000" },
 
-  postItem: {
-    width: (screenWidth - 2) / 3,
-    height: (screenWidth - 2) / 3,
-    margin: 0.5,
+  postImage: {
+    width: screenWidth / 3,
+    height: screenWidth / 3,
   },
-  postImage: { width: "100%", height: "100%" },
 
-  tabContainer: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#dbdbdb", marginTop: 10 },
-  tabButton: { flex: 1, paddingVertical: 12, alignItems: "center" },
-  activeTab: { borderBottomWidth: 1, borderBottomColor: "#000" },
-  usernameHeader: { fontWeight: "600", fontSize: 19 },
-  topHeader: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  paddingHorizontal: 15,
-  paddingVertical: 10,
-  borderBottomWidth: 0.5,
-  borderBottomColor: "#ddd",
-  backgroundColor: "#fff",
-},
-
-headerTitle: {
-  fontSize: 16,
-  fontWeight: "600",
-},
-
+  tabContainer: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#dbdbdb",
+    marginTop: 10,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  activeTab: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#000",
+  },
 });

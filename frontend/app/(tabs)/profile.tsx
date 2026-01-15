@@ -36,28 +36,27 @@ const DEFAULT_AVATAR =
   "https://velle.vn/wp-content/uploads/2025/04/avatar-mac-dinh-4-2.jpg";
 
 export default function Profile() {
-  /** ================= AUTH ================= */
+  /* ================= AUTH ================= */
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isCurrentUserIdLoaded, setIsCurrentUserIdLoaded] = useState(false);
 
-  /** ================= PROFILE ================= */
+  /* ================= PROFILE ================= */
   const [user, setUser] = useState<UserProfileState | null>(null);
   const [posts, setPosts] = useState<PostResponse[]>([]);
+  const [savedPosts, setSavedPosts] = useState<PostResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [savedPosts, setSavedPosts] = useState<PostResponse[]>([]);
 
-  /** ================= UI ================= */
+  /* ================= UI ================= */
   const [menuVisible, setMenuVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"grid" | "saved">("grid");
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
 
-  /** ================= POST MODAL ================= */
+  /* ================= POST MODAL ================= */
   const [selectedPost, setSelectedPost] = useState<PostResponse | null>(null);
-  const [isPostModalVisible, setIsPostModalVisible] = useState(false);
 
-  /** ================= STORY ================= */
+  /* ================= STORY ================= */
   const {
     myStories,
     loading: storyLoading,
@@ -76,7 +75,10 @@ export default function Profile() {
   const [viewerStories, setViewerStories] = useState<StoryResponse[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
 
-  /** ================= LOAD CURRENT USER ================= */
+  const hasStories = myStories.length > 0;
+  const allViewed = myStories.every((s) => s.viewed);
+
+  /* ================= LOAD CURRENT USER ================= */
   useEffect(() => {
     const loadCurrentUser = async () => {
       try {
@@ -92,7 +94,7 @@ export default function Profile() {
     loadCurrentUser();
   }, []);
 
-  /** ================= FETCH PROFILE ================= */
+  /* ================= FETCH PROFILE ================= */
   const fetchMyProfile = useCallback(async () => {
     if (!currentUserId) return;
     setIsLoading(true);
@@ -129,7 +131,8 @@ export default function Profile() {
     }, [isCurrentUserIdLoaded, currentUserId, fetchMyProfile])
   );
 
-  /** ================= STORIES ================= */
+
+  /* ================= STORIES ================= */
   useFocusEffect(
     useCallback(() => {
       if (storyCurrentUserId) {
@@ -140,7 +143,7 @@ export default function Profile() {
   );
 
   const handleStoryPress = () => {
-    if (myStories.length > 0) {
+    if (hasStories) {
       setViewerStories(myStories);
       setViewerIndex(0);
       setShowViewer(true);
@@ -149,10 +152,11 @@ export default function Profile() {
     }
   };
 
-  /** ================= FOLLOWERS / FOLLOWING ================= */
+  /* ================= FOLLOW MODALS ================= */
   const fetchFollowers = async (): Promise<ModalUser[]> => {
     if (!currentUserId) return [];
-    const users: UserResponse[] = await profileService.getFollowers(currentUserId);
+    const users: UserResponse[] =
+      await profileService.getFollowers(currentUserId);
     return users.map((u) => ({
       id: u.id,
       username: u.userName,
@@ -163,7 +167,8 @@ export default function Profile() {
 
   const fetchFollowing = async (): Promise<ModalUser[]> => {
     if (!currentUserId) return [];
-    const users: UserResponse[] = await profileService.getFollowing(currentUserId);
+    const users: UserResponse[] =
+      await profileService.getFollowing(currentUserId);
     return users.map((u) => ({
       id: u.id,
       username: u.userName,
@@ -172,14 +177,13 @@ export default function Profile() {
     }));
   };
 
-  /** ================= SAVED POSTS ================= */
   const fetchSavedPosts = async () => {
     if (!currentUserId) return;
     const saved = await savedPostService.getSavedPostsByUserId(currentUserId);
     setSavedPosts(saved);
   };
 
-  /** ================= LOGOUT ================= */
+  /* ================= LOGOUT ================= */
   const handleLogout = async () => {
     setMenuVisible(false);
     try {
@@ -189,12 +193,16 @@ export default function Profile() {
         await userFirebaseService.setUserOffline(cu.id);
       }
     } finally {
-      await AsyncStorage.multiRemove(["accessToken", "refreshToken", "currentUser"]);
+      await AsyncStorage.multiRemove([
+        "accessToken",
+        "refreshToken",
+        "currentUser",
+      ]);
       router.replace("/login");
     }
   };
 
-  /** ================= RENDER ================= */
+  /* ================= RENDER ================= */
   if (isLoading || !isCurrentUserIdLoaded) {
     return (
       <View style={styles.center}>
@@ -207,9 +215,6 @@ export default function Profile() {
     return (
       <View style={styles.center}>
         <Text>{fetchError}</Text>
-        <TouchableOpacity onPress={fetchMyProfile}>
-          <Text>Tải lại</Text>
-        </TouchableOpacity>
       </View>
     );
   }
@@ -235,8 +240,34 @@ export default function Profile() {
       <ScrollView>
         {/* AVATAR + STATS */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleStoryPress}>
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={handleStoryPress}
+          >
+            {hasStories ? (
+              allViewed ? (
+                <View style={styles.viewedRing}>
+                  <Image
+                    source={{ uri: user.avatar }}
+                    style={styles.avatar}
+                  />
+                </View>
+              ) : (
+                <LinearGradient
+                  colors={["#f77737", "#e91e63", "#8e44ad"]}
+                  style={styles.gradientRing}
+                >
+                  <View style={styles.innerRing}>
+                    <Image
+                      source={{ uri: user.avatar }}
+                      style={styles.avatar}
+                    />
+                  </View>
+                </LinearGradient>
+              )
+            ) : (
+              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            )}
           </TouchableOpacity>
 
           <View style={styles.stats}>
@@ -266,24 +297,39 @@ export default function Profile() {
           <Text style={styles.fullName}>{user.fullName}</Text>
           {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
-          <TouchableOpacity style={styles.editBtn} onPress={() => router.push("/edit_profile")}>
-            <Text>Edit Profile</Text>
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={() => router.push("/edit_profile")}
+          >
+            <Text style={{ fontWeight: "600" }}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
 
         {/* TABS */}
         <View style={styles.tabContainer}>
-          <TouchableOpacity onPress={() => setActiveTab("grid")} style={styles.tabButton}>
-            <Ionicons name="grid" size={24} />
-          </TouchableOpacity>
           <TouchableOpacity
+            style={[styles.tabButton, activeTab === "grid" && styles.activeTab]}
+            onPress={() => setActiveTab("grid")}
+          >
+            <Ionicons
+              name="grid"
+              size={24}
+              color={activeTab === "grid" ? "#000" : "#8e8e8e"}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === "saved" && styles.activeTab]}
             onPress={() => {
               setActiveTab("saved");
               fetchSavedPosts();
             }}
-            style={styles.tabButton}
           >
-            <Ionicons name="bookmark" size={24} />
+            <Ionicons
+              name="bookmark"
+              size={24}
+              color={activeTab === "saved" ? "#000" : "#8e8e8e"}
+            />
           </TouchableOpacity>
         </View>
 
@@ -294,7 +340,10 @@ export default function Profile() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => setSelectedPost(item)}>
-              <Image source={{ uri: item.images[0]?.urlImage }} style={styles.postImage} />
+              <Image
+                source={{ uri: item.images[0]?.urlImage }}
+                style={styles.postImage}
+              />
             </TouchableOpacity>
           )}
           scrollEnabled={false}
@@ -355,24 +404,85 @@ export default function Profile() {
   );
 }
 
-/* ===== STYLES: GIỮ NGUYÊN CỦA BẠN ===== */
+/* ================= STYLES ================= */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  topHeader: { flexDirection: "row", justifyContent: "space-between", padding: 15 },
+
+  topHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 15,
+  },
   usernameHeader: { fontSize: 19, fontWeight: "600" },
+
   header: { flexDirection: "row", padding: 15 },
+  avatarContainer: { marginRight: 30 },
   avatar: { width: 88, height: 88, borderRadius: 44 },
+
+  gradientRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    padding: 3,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  innerRing: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#fff",
+    padding: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  viewedRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    padding: 3,
+    borderWidth: 2,
+    borderColor: "#d1d5db",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   stats: { flex: 1, flexDirection: "row", justifyContent: "space-around" },
   statBlock: { alignItems: "center" },
   statNumber: { fontWeight: "600", fontSize: 17 },
   statLabel: { fontSize: 13 },
+
   infoSection: { paddingHorizontal: 15 },
   fullName: { fontWeight: "600" },
   bio: { marginTop: 5 },
-  editBtn: { marginTop: 12, borderWidth: 1, padding: 7, alignItems: "center" },
-  tabContainer: { flexDirection: "row", borderTopWidth: 1, marginTop: 10 },
-  tabButton: { flex: 1, alignItems: "center", paddingVertical: 12 },
+
+  editBtn: {
+    marginTop: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#dbdbdb",
+    backgroundColor: "#fff",
+  },
+
+  tabContainer: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#dbdbdb",
+    marginTop: 10,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  activeTab: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#000",
+  },
+
   postImage: {
     width: (screenWidth - 2) / 3,
     height: (screenWidth - 2) / 3,
