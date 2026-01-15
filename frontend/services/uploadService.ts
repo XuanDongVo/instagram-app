@@ -1,14 +1,7 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// API configuration
-const getBaseUrl = () => {
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8080';
-  }
-  return 'http://localhost:8080';
-};
+import { getBaseUrl } from './api';
 
 const BASE_URL = getBaseUrl();
 
