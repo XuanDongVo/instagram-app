@@ -53,3 +53,9 @@ export interface CommentBottomSheetProps {
   userId: string;
   initialComments?: Comment[];
 }
+export interface EditCommentModalProps {
+  visible: boolean;
+  initialValue: string;
+  onSave: (newContent: string) => void;
+  onCancel: () => void;
+}

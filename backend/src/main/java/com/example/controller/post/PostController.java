@@ -34,7 +34,7 @@ public class PostController {
 
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<List<PostResponse>>> getPosts() {
-        List<PostResponse> postResponse = postService.getAllPosts();
+        List<PostResponse> postResponse = postService.getAllPost();
         if (postResponse == null) {
             return ResponseEntity.ok(ApiResponse.error(HttpStatus.NOT_FOUND.value(), "Chưa có post nào"));
         }

@@ -272,7 +272,7 @@ export default function Profile() {
 
           <View style={styles.stats}>
             <View style={styles.statBlock}>
-              <Text style={styles.statNumber}>{posts.length}</Text>
+              <Text style={styles.statNumber}>{posts?.length || 0}</Text>
               <Text style={styles.statLabel}>posts</Text>
             </View>
 
