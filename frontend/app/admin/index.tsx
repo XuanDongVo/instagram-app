@@ -22,6 +22,12 @@ export default function AdminHome() {
         onPress: () => router.push("/admin/posts" as any),
       },
       {
+        title: "Kiểm duyệt bình luận",
+        desc: "Lọc, tìm kiếm, xoá bình luận",
+        icon: "chatbubble-ellipses-outline" as const,
+        onPress: () => router.push("/admin/comments" as any),
+      },
+      {
         title: "Đăng xuất",
         desc: "Thoát khỏi khu vực quản trị",
         icon: "log-out-outline" as const,

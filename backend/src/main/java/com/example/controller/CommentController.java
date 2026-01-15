@@ -1,3 +1,4 @@
+
 package com.example.controller;
 
 import com.example.dto.ApiResponse;
@@ -19,6 +20,21 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    @GetMapping("/admin/all")
+    public ResponseEntity<ApiResponse<List<CommentResponseDTO>>> getAllCommentsForAdmin(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            List<CommentResponseDTO> comments = commentService.getAllCommentsPaged(page, size);
+            return ResponseEntity.ok(
+                    ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách bình luận thành công.", comments)
+            );
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Không thể lấy danh sách bình luận."));
+        }
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<CommentResponseDTO>> addComment(@RequestBody CommentRequestDTO requestDTO) {
