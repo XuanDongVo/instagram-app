@@ -48,22 +48,25 @@ export default function PostCard({ post }: { post: PostResponse }) {
     });
   }, []);
 
-  const toggleSaved = useCallback(async (userId: string, postId: string) => {
-    if (!saved) {
-      await savedPostService.savePost({ userId, postId });
-    } else {
-      await savedPostService.unsavePost({ userId, postId });
-    }
-    setSaved((v) => !v);
-  }, []);
+    const toggleSaved = useCallback(async (userId: string, postId: string) => {
+      setSaved(prev => {
+        const next = !prev;
+        if (next) {
+          savedPostService.savePost({ userId, postId });
+        } else {
+          savedPostService.unsavePost({ postId, userId });
+        }
+        return next;
+      });
+    }, []);
 
   const router = useRouter(); // 2. Khởi tạo router
 
   const handleGoToProfile = () => {
     // 3. Điều hướng sang trang user khác
     router.push({
-      pathname: "/user/[userId]" ,
-      params: { userId: post.user.id }, 
+      pathname: "/user/[userId]",
+      params: { userId: post.user.id },
     });
   };
 

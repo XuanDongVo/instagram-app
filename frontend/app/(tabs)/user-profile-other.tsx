@@ -9,6 +9,8 @@ import {
   FlatList,
   Dimensions,
   ActivityIndicator,
+  SafeAreaView,
+  Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRoute, useFocusEffect } from "@react-navigation/native";
@@ -19,11 +21,14 @@ import { router } from "expo-router";
 import FollowerListModal from "../../components/profile/FollowerListModal";
 import { profileService } from "../../services/profileService";
 import { UserResponse, ModalUser, UserProfileState } from "../../types/user";
+import { PostService } from "@/services/postService";
+import PostCard from "@/components/post/PostCard";
 
 // ===== STORY =====
 import { useStory } from "@/hooks/useStory";
 import { StoryViewer } from "@/components/story/StoryViewer";
 import { StoryResponse } from "@/types/story";
+import { PostResponse } from "@/types/post";
 
 const screenWidth = Dimensions.get("window").width;
 const DEFAULT_AVATAR =
@@ -44,6 +49,8 @@ export default function UserProfileOtherScreen() {
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [selectedPost, setSelectedPost] = useState<PostResponse | null>(null);
 
   const isMyProfile = profileId === currentUserId;
 
@@ -98,12 +105,9 @@ export default function UserProfileOtherScreen() {
 
       setIsFollowing(data.following);
 
-      setPosts(
-        Array.from({ length: 12 }).map((_, i) => ({
-          id: String(i),
-          imageUrl: `https://picsum.photos/id/${100 + i}/400/400`,
-        }))
-      );
+      const postRes = await PostService.getMinePost(profileId);
+      console.log("Posts of profile:", postRes.data);
+      setPosts(postRes.data);
     } finally {
       setLoading(false);
     }
@@ -307,7 +311,12 @@ export default function UserProfileOtherScreen() {
           keyExtractor={(i) => i.id}
           scrollEnabled={false}
           renderItem={({ item }) => (
-            <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
+            <TouchableOpacity onPress={() => setSelectedPost(item)}>
+              <Image
+                source={{ uri: item.images[0]?.urlImage }}
+                style={styles.postImage}
+              />
+            </TouchableOpacity>
           )}
         />
       </ScrollView>
@@ -340,6 +349,15 @@ export default function UserProfileOtherScreen() {
         onView={viewStory}
         isMyStory={false}
       />
+
+      <Modal visible={!!selectedPost} animationType="slide">
+        <SafeAreaView style={{ flex: 1 }}>
+          <TouchableOpacity onPress={() => setSelectedPost(null)}>
+            <Ionicons name="arrow-back" size={28} />
+          </TouchableOpacity>
+          {selectedPost && <PostCard post={selectedPost} />}
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
