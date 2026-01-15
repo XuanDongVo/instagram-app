@@ -21,6 +21,7 @@ import java.util.List;
 public class PostController {
     private final PostService postService;
 
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<PostResponse>>> getAllPost(@RequestParam("id") String currentUserId) {
         List<PostResponse> postResponse = postService.getPosts(currentUserId);

@@ -2,6 +2,17 @@ import { ApiResponse, ApiService } from "./api";
 import { Comment, CommentRequest, ModifyCommentRequest } from "../types/comment";
 
 export class CommentService {
+
+  static async getAllComments?(): Promise<Comment[]> {
+    try {
+      const response = await ApiService.get<ApiResponse<Comment[]>>(`v1/comments/admin/all`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching all comments:", error);
+      throw error;
+    }
+  }
+
   // Lấy danh sách bình luận
   static async getComments(postId: string, currentUserId?: string): Promise<Comment[]> {
     try {

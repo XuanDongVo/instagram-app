@@ -7,6 +7,7 @@ import CommentBottomSheet from "../../components/comments/CommentBottomSheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LikeService } from "@/services/likeService";
 import { savedPostService } from "@/services/savedPostService";
+import { useRouter } from "expo-router";
 
 export default function PostCard({ post }: { post: PostResponse }) {
   const [user, setUser] = useState<any>(null);
@@ -47,14 +48,27 @@ export default function PostCard({ post }: { post: PostResponse }) {
     });
   }, []);
 
-  const toggleSaved = useCallback(async (userId: string, postId: string) => {
-    if (!saved) {
-      await savedPostService.savePost({ userId, postId });
-    } else {
-      await savedPostService.unsavePost({ userId, postId });
-    }
-    setSaved((v) => !v);
-  }, []);
+    const toggleSaved = useCallback(async (userId: string, postId: string) => {
+      setSaved(prev => {
+        const next = !prev;
+        if (next) {
+          savedPostService.savePost({ userId, postId });
+        } else {
+          savedPostService.unsavePost({ postId, userId });
+        }
+        return next;
+      });
+    }, []);
+
+  const router = useRouter(); // 2. Khởi tạo router
+
+  const handleGoToProfile = () => {
+    // 3. Điều hướng sang trang user khác
+    router.push({
+      pathname: "/user/[userId]",
+      params: { userId: post.user.id },
+    });
+  };
 
   const formatPostTime = (dateString: string) => {
     const postDate = new Date(dateString);
@@ -84,11 +98,15 @@ export default function PostCard({ post }: { post: PostResponse }) {
       return `${day}/${month}/${year}`;
     }
   };
-
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Image source={{ uri: post.user.profileImage }} style={styles.cardAvatar} />
+        <TouchableOpacity onPress={handleGoToProfile}>
+          <Image
+            source={{ uri: post.user.profileImage }}
+            style={styles.cardAvatar}
+          />
+        </TouchableOpacity>
         <Text numberOfLines={1} style={styles.cardUser}>
           {post.user.userName}
         </Text>
