@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/file")
+@RequestMapping("/api/file")
 @RequiredArgsConstructor
 public class FileController {
 
